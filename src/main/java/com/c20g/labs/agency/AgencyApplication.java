@@ -1,6 +1,8 @@
 package com.c20g.labs.agency;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
@@ -11,6 +13,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import com.c20g.labs.agency.chat.ChatWithLastMessagesPrompt;
 import com.c20g.labs.agency.chat.ConversationHistory;
+import com.c20g.labs.agency.prompt.Example;
+import com.c20g.labs.agency.prompt.MultiShotPrompt;
 import com.c20g.labs.agency.prompt.NoShotPrompt;
 import com.c20g.labs.agency.chat.ChatPromptGenerator;
 import com.theokanning.openai.completion.CompletionRequest;
@@ -35,16 +39,36 @@ public class AgencyApplication implements CommandLineRunner {
 		OpenAiService service = new OpenAiService(openaiApiKey);
 		
 		Map<String, String> mappings = new HashMap<>();
-		mappings.put("topic", "love");
+		mappings.put("text", "Counterpoint is at the forefront of the Business Digital Transformation and AI Revolution.  Guided by Bill, Kevin, and Steve, Counterpoint has won multiple BPTW awards and has a great set of customers.");
 		
-		NoShotPrompt p = new NoShotPrompt("what do you think about {topic}?", mappings);
+		String template = """
+				Your job is to extract key words from provided text.  For example:
+
+				{examples}
+
+				Now you do it, following the examples given.
+
+				Query: {text}
+				Response:""";
+
+		List<Example> examples = new ArrayList<>();
+		examples.add(new Example(
+			"Stripe provides APIs that web developers can use to integrate payment processing into their websites and mobile applications.", 
+			"Stripe, payment processing, APIs, web developers, websites, mobile applications"));
+		examples.add(new Example(
+			"OpenAI has trained cutting-edge language models that are very good at understanding and generating text. Our API provides access to these models and can be used to solve virtually any task that involves processing language.", 
+			"OpenAI, language models, text processing, API"));
+		
+		MultiShotPrompt p = new MultiShotPrompt(template, examples);
 		
 		CompletionRequest completionRequest = CompletionRequest.builder()
                 .model("text-davinci-003")
-                .prompt(p.generate())
+				.temperature(0.0)
+                .prompt(p.generate(mappings))
                 .echo(true)
                 .user("wjm")
                 .n(1)
+                .maxTokens(200)
                 .build();
         service.createCompletion(completionRequest).getChoices().forEach((choice) -> {
         	System.out.println(choice.getText());
@@ -95,7 +119,7 @@ public class AgencyApplication implements CommandLineRunner {
 //		stringScanner.close();
 		
 		
-		service.shutdownExecutor();
+		// service.shutdownExecutor();
 		
 	}
 
