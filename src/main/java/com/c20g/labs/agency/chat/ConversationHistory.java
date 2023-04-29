@@ -16,5 +16,13 @@ public class ConversationHistory {
 	public void setMessages(List<ChatMessage> messages) {
 		this.messages = messages;
 	}
+
+	public String formattedHistory() {
+		StringBuilder sb = new StringBuilder();
+		for(ChatMessage m : messages) {
+			sb.append(m.getRole()).append(" > ").append(m.getContent()).append("\n\n");
+		}
+		return sb.toString();
+	}
 	
 }
