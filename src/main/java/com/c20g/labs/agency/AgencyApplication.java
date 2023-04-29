@@ -1,5 +1,12 @@
 package com.c20g.labs.agency;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 import org.slf4j.Logger;
@@ -10,6 +17,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import com.c20g.labs.agency.chat.ConversationHistory;
+import com.c20g.labs.agency.skill.SkillRequest;
+import com.c20g.labs.agency.skill.calculate.CalculateSkill;
+import com.c20g.labs.agency.skill.ticker.TickerSkill;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatMessage;
 import com.theokanning.openai.completion.chat.ChatMessageRole;
@@ -26,6 +37,12 @@ public class AgencyApplication implements CommandLineRunner {
 
 	@Autowired
 	private ChatCompletionRequestBuilder requestBuilder;
+
+	@Autowired
+	private CalculateSkill calculateSkill;
+
+	@Autowired
+	private TickerSkill tickerSkill;
 	
 	public static void main(String[] args) {
 		SpringApplication.run(AgencyApplication.class, args);
@@ -34,6 +51,9 @@ public class AgencyApplication implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 		
+		File logFile = File.createTempFile("/tmp", "gpt");
+		PrintWriter writer = new PrintWriter(new FileWriter(logFile));
+		LOGGER.info("Writing conversation to log file: " + logFile.getAbsolutePath());
 		ConversationHistory conversation = new ConversationHistory();
 
 		String systemMessage = "You are an AI assistant that helps users achieve a specified goal.";
@@ -49,8 +69,14 @@ public class AgencyApplication implements CommandLineRunner {
 			useful, including revelant contextual information you should feel free to leverage 
 			while determining your response.
 				""";
-		conversation.getMessages().add(new ChatMessage(ChatMessageRole.USER.value(), prelude));
-		conversation.getMessages().add(new ChatMessage(ChatMessageRole.ASSISTANT.value(), "I understand."));
+		
+		ChatMessage preludeMessage = new ChatMessage(ChatMessageRole.USER.value(), prelude);
+		conversation.getMessages().add(preludeMessage);
+		logMessage(writer, preludeMessage);
+		
+		ChatMessage ackPreludeMessage = new ChatMessage(ChatMessageRole.ASSISTANT.value(), "I understand.");
+		conversation.getMessages().add(ackPreludeMessage);
+		logMessage(writer, ackPreludeMessage);
 
 		String responseFormat = """
 			Your response should take the following format:
@@ -64,8 +90,11 @@ public class AgencyApplication implements CommandLineRunner {
 			{STEP n}
 
 			Only print the complete task list once, and for each step, just print a short descriptive name.
+			Do not specify in the steps which skills you will use to solve it, just print the high-level
+			steps.
 
 			Then for each step, we will carry out a conversation to work through the answer. 
+			We will only do one step at a time.
 			For the current step, send the following three lines: 
 
 			a. What I need to do: {STEP}
@@ -79,29 +108,45 @@ public class AgencyApplication implements CommandLineRunner {
 			the process.  Remember to always use the format above and we will only discuss one step at a time.
 				""";
 
-		conversation.getMessages().add(new ChatMessage(ChatMessageRole.USER.value(), responseFormat));
-		conversation.getMessages().add(new ChatMessage(ChatMessageRole.ASSISTANT.value(), "I understand."));
+		ChatMessage responseFormatMessage = new ChatMessage(ChatMessageRole.USER.value(), responseFormat);
+		conversation.getMessages().add(responseFormatMessage);
+		logMessage(writer, responseFormatMessage);
+
+		ChatMessage ackFormatMessage = new ChatMessage(ChatMessageRole.ASSISTANT.value(), "I understand.");
+		conversation.getMessages().add(ackFormatMessage);
+		logMessage(writer, ackFormatMessage);
 
 		String skillsDescription = """
 			skills = [
-				{ 'name': 'calculate', 'description':'This will take a mathematical expression and calculate its result.', 'instructions':'Do not perform any mathematical calculations yourself.  When you need any calculation performed, this still is the only way for you to get the result.  When you need to use this skill, return as the result of that step the JSON formatted as {'type':'calculate', 'expression":'<calculation to perform>'}" },
-				{ 'name':'ticker', 'description':'This will take a stock symbol and date and return the open, high, low, and close value for the stock', 'instructions':'Do not ever guess at the value of a stock.  Your ticker skill must be used when a stock price (or a calculation based on a stock price) is needed.  When you need to use this skill, return as the result of that step the JSON formatted as {'type':'ticker', 'symbol':'<ticker symbol>', 'date':'<yyyy-MM-dd>''} and the result will give the open, high, low, and close prices for that stock on that day." }
+				{ \"name\": \"calculate\", \"description\":\"This will take a mathematical expression and calculate its result.\", \"instructions\":\"Do not perform any mathematical calculations yourself.  When you need any calculation performed, this still is the only way for you to get the result.  When you need to use this skill, return as the result of that step the JSON formatted as {\"type\":\"calculate\", \"expression\":\"<calculation to perform>\"}" },
+				{ \"name\":\"ticker\", \"description\":\"This will take a stock symbol and date and return the open, high, low, and close value for the stock\", \"instructions\":\"Do not ever guess at the value of a stock.  Your ticker skill must be used when a stock price (or a calculation based on a stock price) is needed.  When you need to use this skill, return as the result of that step the JSON formatted as {\"type\":\"ticker\", \"symbol\":\"<ticker symbol>\", \"date\":\"<yyyy-MM-dd>\"\"} and the result will give the open, high, low, and close prices for that stock on that day." }
 			]
 				""";
 
-		conversation.getMessages().add(new ChatMessage(ChatMessageRole.USER.value(), skillsDescription));
-		conversation.getMessages().add(new ChatMessage(ChatMessageRole.ASSISTANT.value(), "I understand."));
+		ChatMessage skillsMessage = new ChatMessage(ChatMessageRole.USER.value(), skillsDescription);
+		conversation.getMessages().add(skillsMessage);
+		logMessage(writer, skillsMessage);
+
+		ChatMessage ackSkillsMessage = new ChatMessage(ChatMessageRole.ASSISTANT.value(), "I understand.");
+		conversation.getMessages().add(ackSkillsMessage);
+		logMessage(writer, ackSkillsMessage);
 
 		String contextNotes = """
 			context_notes = [
 			]
 				""";
 		
-		conversation.getMessages().add(new ChatMessage(ChatMessageRole.USER.value(), contextNotes));
-		conversation.getMessages().add(new ChatMessage(ChatMessageRole.ASSISTANT.value(), "I understand."));
+		ChatMessage contextNotesMessage = new ChatMessage(ChatMessageRole.USER.value(), contextNotes);
+		conversation.getMessages().add(contextNotesMessage);
+		logMessage(writer, contextNotesMessage);
+
+		ChatMessage ackContextNotesMessage = new ChatMessage(ChatMessageRole.ASSISTANT.value(), "I understand.");
+		conversation.getMessages().add(ackContextNotesMessage);
+		logMessage(writer, ackContextNotesMessage);
 
 		String prompt = "What is the average of the opening stock price of AAPL and ABC on April 24, 2023?";
-		conversation.getMessages().add(new ChatMessage(ChatMessageRole.USER.value(), prompt));
+		ChatMessage userPromptMessage = new ChatMessage(ChatMessageRole.USER.value(), prompt);
+		conversation.getMessages().add(userPromptMessage);
 
 		final Scanner stringScanner = new Scanner(System.in);
 
@@ -126,23 +171,31 @@ public class AgencyApplication implements CommandLineRunner {
 			
 			String aiResponse = sb.toString();
 			System.out.println(aiResponse);
-			conversation.getMessages().add(new ChatMessage(ChatMessageRole.ASSISTANT.value(), aiResponse));
+			ChatMessage aiResponseMessage = new ChatMessage(ChatMessageRole.ASSISTANT.value(), aiResponse);
+			conversation.getMessages().add(aiResponseMessage);
+			logMessage(writer, aiResponseMessage);
 			System.out.println();
 
+			String nextMessage = null;
 			try {
 				boolean addedMessageFromSkill = parseResponseForSkillJSON(aiResponse, conversation);
-				if(addedMessageFromSkill)
+				if(addedMessageFromSkill) {
+					LOGGER.debug("The skill added a response automatically, proceeding...");
 					continue;
+				}
+				else {
+					LOGGER.debug("The skill did not add a new message, manual intervention required.");
+					System.out.print("> ");
+					nextMessage = stringScanner.nextLine();
+				}
 			}
 			catch(Exception badResponseFormatException) {
-				conversation.getMessages().add(
-					new ChatMessage(ChatMessageRole.USER.value(), badResponseFormatException.getMessage()));
+				ChatMessage exceptionMessage = new ChatMessage(ChatMessageRole.USER.value(), badResponseFormatException.getMessage());
+				conversation.getMessages().add(exceptionMessage);
+				logMessage(writer, exceptionMessage);
 				LOGGER.debug("Caught a bad response format from OpenAI.  Castigation sent.");
 				continue;
 			}
-
-			System.out.print("> ");
-			String nextMessage = stringScanner.nextLine();
 
 			if("p".equals(nextMessage)) {
 				String history = conversation.formattedHistory();
@@ -157,9 +210,6 @@ public class AgencyApplication implements CommandLineRunner {
 			if("".equals(nextMessage)) {
 				break;
 			}
-
-			
-
 		}
 
 		stringScanner.close();
@@ -169,46 +219,123 @@ public class AgencyApplication implements CommandLineRunner {
 
 
 	private boolean parseResponseForSkillJSON(String response, ConversationHistory conversation) throws Exception {
+		LOGGER.debug("Analyzing the response for skill JSON");
+		
 		String[] lines = response.split("\n");
 
+		boolean sendGenericRetryRequest = false;
+
+		// this is a little too restrictive.  it's hard to get chatgpt to 
+		// respond without additional commentary, so it'll generally have more than 3 lines
+		// that said, it usually DOES work correctly the second time.  just not...  you know.
+
+		/*
 		// if(lines.length > 3) {
-		// 	throw new Exception("""
+		// 	throw new Exception(
 		// 		Please resend and only print the 3 lines specified:
 
 		// 		a. What I need to do: {STEP}
 		// 		b. How to approach: {WHICH SKILL TO USE AND WHY}
 		// 		c. Interim step: {JSON to use a skill}
-		// 	""");
-		// }
+		// 	);
+		}
+		*/
 
+		// yes, there are better ways to do this.  be quiet.
+		List<String> skillRequests = new ArrayList<>();
 		String skillLine = null;
 		for(int i = 0; i < lines.length; i++) {
-			if(lines[i].startsWith("Interim step: {")) {
-				skillLine = lines[i].substring(14);
+			if(lines[i].contains("Interim step: {")) {
+				skillLine = lines[i].substring(lines[i].indexOf("{"));
+				skillRequests.add(skillLine);
 				break;
 			}
 		}
-		LOGGER.debug("Skill to execute: " + skillLine);
 
 		if(skillLine == null) {
-			return false; // nothing to do
+			// try again and just see if we can find any json that looks like a skill request
+			for(int i = 0; i < lines.length; i++) {
+				if(lines[i].contains("{\"type\":\"") && lines[i].endsWith("}")) {
+					skillLine = lines[i].substring(lines[i].indexOf("{"));
+					skillRequests.add(skillLine);
+					break;
+				}
+			}	
 		}
-		if("{'type':'ticker', 'symbol':'AAPL', 'date':'2023-04-24'}".equals(skillLine)) {
-			String tickerSkillTxt = "{\"Open\":145.23, \"High\":146.02, \"Low\":145.23, \"Close\":145.88}";
-			LOGGER.debug("Sending skill result > " + tickerSkillTxt);
-			conversation.getMessages().add(new ChatMessage(ChatMessageRole.USER.value(), tickerSkillTxt));
+
+		Map<String, String> skillResults = new HashMap<>();
+
+		for(String req : skillRequests) {
+			LOGGER.debug("Skill to execute: " + req);
+
+			try {
+				ObjectMapper objectMapper = new ObjectMapper();
+				SkillRequest skillRequest = objectMapper.readValue(req, SkillRequest.class);
+				if("ticker".equals(skillRequest.getType())) {
+					try {
+						String skillResult = tickerSkill.execute(req);
+						LOGGER.debug("Get actual skill result: " + skillResult);
+						skillResults.put(req, skillResult);
+					}
+					catch(Exception e) {
+						LOGGER.error("Error executing skill: " + req, e);
+						skillResults.put(req, "ERROR");
+					}
+				}
+				else if("calculate".equals(skillRequest.getType())) {
+					try {
+						String skillResult = calculateSkill.execute(req);
+						LOGGER.debug("Got actual skill result: " + skillResult);
+						skillResults.put(req, skillResult);
+					}
+					catch(Exception e) {
+						LOGGER.error("Error executing skill: " + req, e);
+						skillResults.put(req, "ERROR");
+					}
+				}
+				else {
+					sendGenericRetryRequest = true;
+				}
+			}
+			catch(Exception e) {
+				sendGenericRetryRequest = true;
+			}
 		}
-		if("{'type':'ticker', 'symbol':'ABC', 'date':'2023-04-24'}".equals(skillLine)) {
-			String tickerSkillTxt = "{\"Open\":15.23, \"High\":16.02, \"Low\":15.23, \"Close\":15.88}";
-			LOGGER.debug("Sending skill result > " + tickerSkillTxt);
-			conversation.getMessages().add(new ChatMessage(ChatMessageRole.USER.value(), tickerSkillTxt));
+
+		if(sendGenericRetryRequest) {
+			String errMsg = """
+				I was unable to process your response because you did not follow the format 
+				specified in the instructions.  Please limit your response to exactly 3 lines
+				and follow the format:
+				
+				a. What I need to do: {STEP}
+				b. How to approach: {WHICH SKILL TO USE AND WHY}
+				c. Interim step: {JSON to use a skill}
+					""";
+			conversation.getMessages().add(new ChatMessage(ChatMessageRole.USER.value(), errMsg));
+			return true;
 		}
-		if("{'type':'calculate', 'expression':'(145.23 + 15.23) / 2'}".equals(skillLine)) {
-			String calcSkillText = "80.23";
-			LOGGER.debug("Sending skill result > " + calcSkillText);
-			conversation.getMessages().add(new ChatMessage(ChatMessageRole.USER.value(), calcSkillText));
+
+		if(skillRequests.size() == 0) {
+			return false;
 		}
+
+		StringBuilder skillResponseSB = new StringBuilder();
+		skillResponseSB.append("You requested to use " + skillRequests.size() + " skills.  Here are the results:");
+		skillResponseSB.append("\n\n");
+		for(String req : skillRequests) {
+			skillResponseSB.append("The request " + req + " resulted in " + skillResults.get(req));
+			skillResponseSB.append("\n");
+		}
+		conversation.getMessages().add(new ChatMessage(ChatMessageRole.USER.value(), skillResponseSB.toString()));
+
+		
 		return true;
+	}
+
+	private void logMessage(PrintWriter writer, ChatMessage msg) {
+		writer.println(msg.getRole() + " > " + msg.getContent());
+		writer.println("");
 	}
 
 }

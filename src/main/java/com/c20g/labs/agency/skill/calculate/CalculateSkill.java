@@ -2,11 +2,13 @@ package com.c20g.labs.agency.skill.calculate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import com.c20g.labs.agency.skill.Skill;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+@Service
 public class CalculateSkill implements Skill {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CalculateSkill.class);
@@ -16,7 +18,7 @@ public class CalculateSkill implements Skill {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             CalculateSkillRequest q = objectMapper.readValue(jsonRequest, CalculateSkillRequest.class);
-            LOGGER.debug("Calculating expression: " + q);
+            LOGGER.debug("Calculating expression: " + q.getExpression());
         }
         catch(JsonProcessingException e) {
             LOGGER.error("Error parsing JSON: " + jsonRequest, e);
