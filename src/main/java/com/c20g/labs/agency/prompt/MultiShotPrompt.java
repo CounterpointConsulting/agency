@@ -3,12 +3,12 @@ package com.c20g.labs.agency.prompt;
 import java.util.List;
 import java.util.Map;
 
-import org.slf4j.*;
+// import org.slf4j.*;
 
 
 public class MultiShotPrompt extends PromptGenerator {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(MultiShotPrompt.class);
+	// private static final Logger LOGGER = LoggerFactory.getLogger(MultiShotPrompt.class);
 	
 	private List<Example> examples;
 	

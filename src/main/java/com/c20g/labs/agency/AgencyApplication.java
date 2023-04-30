@@ -17,6 +17,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import com.c20g.labs.agency.chat.ConversationHistory;
+import com.c20g.labs.agency.milvus.MilvusService;
 import com.c20g.labs.agency.skill.SkillRequest;
 import com.c20g.labs.agency.skill.calculate.CalculateSkill;
 import com.c20g.labs.agency.skill.ticker.TickerSkill;
@@ -25,6 +26,7 @@ import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatMessage;
 import com.theokanning.openai.completion.chat.ChatMessageRole;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest.ChatCompletionRequestBuilder;
+import com.theokanning.openai.embedding.EmbeddingRequest.EmbeddingRequestBuilder;
 import com.theokanning.openai.service.OpenAiService;
 
 @SpringBootApplication
@@ -39,6 +41,12 @@ public class AgencyApplication implements CommandLineRunner {
 	private ChatCompletionRequestBuilder requestBuilder;
 
 	@Autowired
+	private EmbeddingRequestBuilder embeddingRequestBuilder;
+
+	@Autowired
+	private MilvusService milvusService;
+
+	@Autowired
 	private CalculateSkill calculateSkill;
 
 	@Autowired
@@ -51,7 +59,7 @@ public class AgencyApplication implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 		
-		File logFile = File.createTempFile("/tmp", "gpt");
+		File logFile = File.createTempFile("/tmp", ".agency.log");
 		PrintWriter writer = new PrintWriter(new FileWriter(logFile));
 		LOGGER.info("Writing conversation to log file: " + logFile.getAbsolutePath());
 		ConversationHistory conversation = new ConversationHistory();
@@ -106,6 +114,12 @@ public class AgencyApplication implements CommandLineRunner {
 			be able to understand the request and our plan will fail.  I will send a message
 			back with the correct value from using that skill.  Then carry on to the next step and repeat 
 			the process.  Remember to always use the format above and we will only discuss one step at a time.
+
+			Once you know the answer and do not need to use any further skills, send the following three lines:
+
+			a. What I need to do: Nothing.  I know the answer.
+			b. How to approach: Nothing to do.
+			c. Final answer: {FINAL ANSWER}
 				""";
 
 		ChatMessage responseFormatMessage = new ChatMessage(ChatMessageRole.USER.value(), responseFormat);
@@ -166,7 +180,7 @@ public class AgencyApplication implements CommandLineRunner {
 				.doOnError(Throwable::printStackTrace)
 				.blockingForEach((x) -> { 
 					if(x.getChoices().get(0).getMessage() != null && x.getChoices().get(0).getMessage().getContent() != null)
-					sb.append(x.getChoices().get(0).getMessage().getContent()); 
+						sb.append(x.getChoices().get(0).getMessage().getContent()); 
 				});
 			
 			String aiResponse = sb.toString();
@@ -184,7 +198,7 @@ public class AgencyApplication implements CommandLineRunner {
 					continue;
 				}
 				else {
-					LOGGER.debug("The skill did not add a new message, manual intervention required.");
+					LOGGER.debug("Manual intervention required.");
 					System.out.print("> ");
 					nextMessage = stringScanner.nextLine();
 				}
@@ -303,6 +317,11 @@ public class AgencyApplication implements CommandLineRunner {
 		}
 
 		if(sendGenericRetryRequest) {
+
+			// Another version that might work:
+			// Please resend and only print the 3 lines specified: a. What I need to do: {STEP}, b. How to approach: {WHICH 
+			// SKILL TO USE AND WHY}, c. Interim step: {JSON to use a skill}
+			//
 			String errMsg = """
 				I was unable to process your response because you did not follow the format 
 				specified in the instructions.  Please limit your response to exactly 3 lines
