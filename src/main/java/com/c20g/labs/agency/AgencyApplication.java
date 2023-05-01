@@ -3,11 +3,17 @@ package com.c20g.labs.agency;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +23,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import com.c20g.labs.agency.chat.ConversationHistory;
+import com.c20g.labs.agency.embeddings.EmbeddingService;
 import com.c20g.labs.agency.milvus.MilvusService;
 import com.c20g.labs.agency.skill.SkillRequest;
 import com.c20g.labs.agency.skill.calculate.CalculateSkill;
@@ -26,7 +33,6 @@ import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatMessage;
 import com.theokanning.openai.completion.chat.ChatMessageRole;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest.ChatCompletionRequestBuilder;
-import com.theokanning.openai.embedding.EmbeddingRequest.EmbeddingRequestBuilder;
 import com.theokanning.openai.service.OpenAiService;
 
 @SpringBootApplication
@@ -41,10 +47,10 @@ public class AgencyApplication implements CommandLineRunner {
 	private ChatCompletionRequestBuilder requestBuilder;
 
 	@Autowired
-	private EmbeddingRequestBuilder embeddingRequestBuilder;
+	private MilvusService milvusService;
 
 	@Autowired
-	private MilvusService milvusService;
+	private EmbeddingService embeddingService;
 
 	@Autowired
 	private CalculateSkill calculateSkill;
@@ -58,6 +64,9 @@ public class AgencyApplication implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) throws Exception {
+
+		milvusService.loadCollection();
+		milvusService.describeCollection();
 		
 		File logFile = File.createTempFile("/tmp", ".agency.log");
 		PrintWriter writer = new PrintWriter(new FileWriter(logFile));
@@ -211,14 +220,68 @@ public class AgencyApplication implements CommandLineRunner {
 				continue;
 			}
 
-			if("p".equals(nextMessage)) {
-				String history = conversation.formattedHistory();
-				LOGGER.debug("\nCONVERSATION HISTORY\n===\n" + history + "\n\n");
-				System.out.print("> ");
-				nextMessage = stringScanner.nextLine();
+
+			// handle commands
+			Set<String> commandSet = new HashSet<>();
+			commandSet.add("\\p");
+			commandSet.add("\\i");
+			while(commandSet.contains(nextMessage)) {
+				// print conversation
+				if("\\p".equals(nextMessage)) {
+					String history = conversation.formattedHistory();
+					LOGGER.debug("\nCONVERSATION HISTORY\n===\n" + history + "\n\n");
+					nextMessage = getNextMessage(stringScanner);
+				}
+				// index documents
+				if("\\i".equals(nextMessage)) {
+					try (Stream<Path> stream = Files.walk(Paths.get("/tmp/agencydocs"))) {
+						stream.filter(Files::isRegularFile)
+							  .forEach(System.out::println);
+					}
+				}
 			}
 			
-			conversation.getMessages().add(new ChatMessage(ChatMessageRole.USER.value(), nextMessage));
+
+			// if("x".equals(nextMessage)) {
+			// 	while("x".equals(nextMessage)) {
+			// 		if(milvusService.hasCollection()) {
+			// 			LOGGER.debug("Collection exists aleady: " + 
+			// 				milvusService.getConfiguration().getCollection());
+			// 		}
+			// 		else {
+			// 			LOGGER.debug("Collection does not exist, creating: " + 
+			// 				milvusService.getConfiguration().getCollection());
+			// 			milvusService.createCollection();
+			// 			milvusService.createIndex();
+			// 		}
+			// 		milvusService.loadCollection();
+
+			// 		String[] embeddingsInput = {"dog", "cat"};
+			// 		List<Embedding> embeddings = embeddingService.getEmbeddings(Arrays.asList(embeddingsInput));
+			// 		StringBuilder embeddingSB = new StringBuilder();
+			// 		for(int i = 0; i < embeddings.size(); i++) {
+			// 			embeddingSB.append("{ ");
+			// 			embeddingSB.append("input: ").append(embeddingsInput[i]).append("\n");
+			// 			embeddingSB.append("dimensions: ").append(embeddings.get(i).getEmbedding().size());
+			// 			embeddingSB.append("embedding: [ ");
+			// 			List<Double> embeddingVal = embeddings.get(i).getEmbedding();
+			// 			for(Double d : embeddingVal) {
+			// 				embeddingSB.append(d.doubleValue()).append(" ");
+			// 			}
+			// 			embeddingSB.append(" ]");
+			// 			embeddingSB.append(" }").append("\n");
+
+			// 			milvusService.insert(-1L, "ABC123", embeddings.get(i).getEmbedding());
+			// 		}
+			// 		LOGGER.debug("Embeddings: " + embeddingSB.toString());
+			// 		nextMessage = getNextMessage(stringScanner);
+
+			// 	}
+			// }
+			
+			ChatMessage userMessage = new ChatMessage(ChatMessageRole.USER.value(), nextMessage);
+			conversation.getMessages().add(userMessage);
+			logMessage(writer, userMessage);
 			System.out.println();
 
 			if("".equals(nextMessage)) {
@@ -355,6 +418,12 @@ public class AgencyApplication implements CommandLineRunner {
 	private void logMessage(PrintWriter writer, ChatMessage msg) {
 		writer.println(msg.getRole() + " > " + msg.getContent());
 		writer.println("");
+	}
+
+	private String getNextMessage(Scanner stringScanner) {
+		System.out.print("> ");
+		String input = stringScanner.nextLine();
+		return input;
 	}
 
 }

@@ -3,6 +3,7 @@ package com.c20g.labs.agency.milvus;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -23,6 +24,7 @@ import io.milvus.param.R;
 import io.milvus.param.RpcStatus;
 import io.milvus.param.collection.CreateCollectionParam;
 import io.milvus.param.collection.DescribeCollectionParam;
+import io.milvus.param.collection.DropCollectionParam;
 import io.milvus.param.collection.FieldType;
 import io.milvus.param.collection.HasCollectionParam;
 import io.milvus.param.collection.LoadCollectionParam;
@@ -43,13 +45,13 @@ public class MilvusService {
     @Autowired
     private MilvusConfiguration milvusConfiguration;
 
-    public void createCollection() throws Exception {
+    private void createCollection() throws Exception {
         FieldType fieldType1 = FieldType.newBuilder()
             .withName("id")
             .withDescription("chunk identifier")
             .withDataType(DataType.Int64)
             .withPrimaryKey(true)
-            .withAutoID(true)
+            .withAutoID(false)
             .build();
         
         FieldType fieldType2 = FieldType.newBuilder()
@@ -61,12 +63,13 @@ public class MilvusService {
         FieldType fieldType3 = FieldType.newBuilder()
             .withName("external_id")
             .withDescription("reference to source of vector data (eg. CMS identifier)")
-            .withDataType(DataType.String)
+            .withDataType(DataType.VarChar)
+            .withMaxLength(255)
             .build();
 
         FieldType fieldType4 = FieldType.newBuilder()
             .withName("embeddings")
-            .withDescription(null)
+            .withDescription("the vector of floaty mcfloatfaces")
             .withDataType(DataType.FloatVector)
             .withDimension(milvusConfiguration.getDimensions())
             .build();
@@ -97,20 +100,21 @@ public class MilvusService {
                     throw new Exception("Error creating embeddings collection");
                 }
             }
+            createIndex();
         }
         catch(Exception e) {
             throw new Exception("Error creating embeddings collection", e);
         }
     }
 
-    public boolean hasCollection() throws Exception {
+    private boolean hasCollection() throws Exception {
 
         try {
             R<Boolean> response = milvusClient.hasCollection(HasCollectionParam.newBuilder()
                 .withCollectionName(milvusConfiguration.getCollection())
                 .build());
             if(response.getStatus().equals(R.Status.Success.getCode())) {
-                return response.getData();
+                return response.getData().booleanValue();
             }
             else {
                 LOGGER.error("Error checking if collection exists: " + response.getMessage());
@@ -129,11 +133,23 @@ public class MilvusService {
 
     public void loadCollection() throws Exception {
         try {
+            boolean hasCollection = hasCollection();
+            if(milvusConfiguration.getDeleteOnStartup() && hasCollection) {
+                milvusClient.dropCollection(DropCollectionParam.newBuilder()
+                    .withCollectionName(milvusConfiguration.getCollection())
+                    .build());
+                createCollection();
+            }
+
+            if(!hasCollection) {
+                createCollection();
+            }
+
             R<RpcStatus> response = milvusClient.loadCollection(LoadCollectionParam.newBuilder()
                 .withCollectionName(milvusConfiguration.getCollection())
                 .build());
             if(response.getStatus().equals(R.Status.Success.getCode())) {
-                LOGGER.debug("Collection loaded");
+                LOGGER.debug("Collection loaded: " + response.getData());
             }
             else {
                 LOGGER.error("Error loading collection: " + response.getMessage());
@@ -176,7 +192,7 @@ public class MilvusService {
         }
     }
 
-    public void createIndex() throws Exception {
+    private void createIndex() throws Exception {
         try {
             R<RpcStatus> response = milvusClient.createIndex(CreateIndexParam.newBuilder()
                 .withCollectionName(milvusConfiguration.getCollection())
@@ -231,17 +247,23 @@ public class MilvusService {
         }
     }
 
-    public MutationResult insert(Long parentId, String externalId, List<Double> embeddings) throws Exception {
+    public MutationResult insert(Long parentId, String externalId, List<Double> embedding) throws Exception {
         try {
             List<Field> fields = new ArrayList<>();
+
+            List<Float> floatEmbedding = new ArrayList<>();
+            for(Double d : embedding) {
+                floatEmbedding.add(d.floatValue());
+            }
             
+            fields.add(new Field("id", Arrays.asList((new Random()).nextLong())));
             fields.add(new Field("parent_id", Arrays.asList(parentId)));
             fields.add(new Field("external_id", Arrays.asList(externalId)));
-            fields.add(new Field("embeddings", embeddings)); 
+            fields.add(new Field("embeddings", Arrays.asList(floatEmbedding))); 
 
             R<MutationResult> response = milvusClient.insert(InsertParam.newBuilder()
                 .withCollectionName(milvusConfiguration.getCollection())
-                .withFields(null)
+                .withFields(fields)
                 .build());
             if(response.getStatus().equals(R.Status.Success.getCode())) {
                 LOGGER.debug("Insert successful: " + response.getData().getIDs());
@@ -262,5 +284,13 @@ public class MilvusService {
         }
     }
 
-    
+
+
+
+
+    public MilvusConfiguration getConfiguration() {
+        return this.milvusConfiguration;
+    }
+
+
 }

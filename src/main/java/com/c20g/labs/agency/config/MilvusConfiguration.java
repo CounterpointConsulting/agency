@@ -22,20 +22,20 @@ public class MilvusConfiguration {
     @Value("${milvus.password}")
     private String password;
 
-    @Value("${milvus.index}")
-    private String index;
-
     @Value("${milvus.collection}")
     private String collection;
 
     @Value("${milvus.dimensions}")
     private Integer dimensions;
 
-    @Value("${milvus.timeout.ms}")
+    @Value("${milvus.timeout_ms}")
     private Long timeout;
 
     @Value("${milvus.shards}")
     private Integer shards;
+
+    @Value("${milvus.delete_on_startup}")
+    private Boolean deleteOnStartup;
     
     @Bean
     public MilvusServiceClient milvusClient() {
@@ -43,7 +43,7 @@ public class MilvusConfiguration {
         ConnectParam connectParam = ConnectParam.newBuilder()
                 .withHost(host)
                 .withPort(port)
-                .withAuthorization(username, password)
+                //.withAuthorization(username, password)
                 .build();
         milvusClient = new MilvusServiceClient(connectParam);
         return milvusClient;
@@ -81,14 +81,6 @@ public class MilvusConfiguration {
         this.password = password;
     }
 
-    public String getIndex() {
-        return index;
-    }
-
-    public void setIndex(String index) {
-        this.index = index;
-    }
-
     public String getCollection() {
         return collection;
     }
@@ -121,4 +113,12 @@ public class MilvusConfiguration {
         this.shards = shards;
     }
 
+    public Boolean getDeleteOnStartup() {
+        return deleteOnStartup;
+    }
+
+    public void setDeleteOnStartup(Boolean deleteOnStartup) {
+        this.deleteOnStartup = deleteOnStartup;
+    }
+    
 }
