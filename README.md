@@ -1,4 +1,4 @@
-=Agency=
+# Agency
 
 Agency is a framework from Counterpoint Consulting that aims to simplify building applications on top of a Large Language Model (LLM).  It
 provides a number of features that enable this:
@@ -19,7 +19,7 @@ at this point as we iterate on initial goals.
 said, I really like what they've done so far.  Much respect.  Unfortunately, I don't know Python and Java has gotten pretty nice
 over the years.
 
- ==Contributing==
+## Contributing
  
  Pull requests welcome!  I think in particular once the API has solidified a bit and refactoring has made the structure sane, the 
  primary needs will be documentation, new agents, and new skills.
