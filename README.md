@@ -5,6 +5,7 @@ provides a number of features that enable this:
 
 - Tools to create robust prompts for the LLM interactions (with history, variable injection, and examples for multi-shot)
 - The ability to add "skills" to agents to enable local automated actions upon LLM response commands
+- Integration with OpenAI embeddings functionality to vectorize text by generating embeddings
 - Integration with Milvus vector DB to provide contextual / similarity searches
 - Loaders for different types of files / documents
 
