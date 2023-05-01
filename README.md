@@ -24,5 +24,6 @@ over the years.
  Pull requests welcome!  I think in particular once the API has solidified a bit and refactoring has made the structure sane, the 
  primary needs will be documentation, new agents, and new skills.
  
- I'll be setting up a mailing list and a Discord channel for folks who are interested in using or contributing to agency.
+ - Discord user support: [agency-user](https://discord.com/channels/1102704021342519368/1102704226561441832)
+ - Discord developer discussion: [agency-dev](https://discord.com/channels/1102704021342519368/1102704258471710783)
  
