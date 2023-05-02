@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -23,8 +24,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import com.c20g.labs.agency.chat.ConversationHistory;
+import com.c20g.labs.agency.config.AgencyConfiguration;
 import com.c20g.labs.agency.embeddings.EmbeddingService;
 import com.c20g.labs.agency.milvus.MilvusService;
+import com.c20g.labs.agency.skill.SkillDescription;
 import com.c20g.labs.agency.skill.SkillRequest;
 import com.c20g.labs.agency.skill.calculate.CalculateSkill;
 import com.c20g.labs.agency.skill.ticker.TickerSkill;
@@ -57,6 +60,9 @@ public class AgencyApplication implements CommandLineRunner {
 
 	@Autowired
 	private TickerSkill tickerSkill;
+
+	@Autowired
+	private AgencyConfiguration agencyConfiguration;
 	
 	public static void main(String[] args) {
 		SpringApplication.run(AgencyApplication.class, args);
@@ -68,8 +74,8 @@ public class AgencyApplication implements CommandLineRunner {
 		milvusService.loadCollection();
 		milvusService.describeCollection();
 		
-		File logFile = File.createTempFile("/tmp", ".agency.log");
-		PrintWriter writer = new PrintWriter(new FileWriter(logFile));
+		File logFile = File.createTempFile(agencyConfiguration.getChatLogDirectory(), ".agency.log");
+		PrintWriter writer = new PrintWriter(new FileWriter(logFile.getAbsolutePath()));
 		LOGGER.info("Writing conversation to log file: " + logFile.getAbsolutePath());
 		ConversationHistory conversation = new ConversationHistory();
 
@@ -81,10 +87,6 @@ public class AgencyApplication implements CommandLineRunner {
 			you have a defined set of 'skills'.  The conversation below will provide a list of 
 			skills you may make use of.  You use a skill by outputting JSON in the format specified 
 			in the skill's description.
-
-			I will also provide a list of notes called context_notes of things that you may find 
-			useful, including revelant contextual information you should feel free to leverage 
-			while determining your response.
 				""";
 		
 		ChatMessage preludeMessage = new ChatMessage(ChatMessageRole.USER.value(), prelude);
@@ -118,7 +120,8 @@ public class AgencyApplication implements CommandLineRunner {
 			b. How to approach: {WHICH SKILL TO USE AND WHY}
 			c. Interim step: {JSON to use a skill}
 
-			Each of these messages you send to me should be exactly 3 lines long.
+			Each of these messages you send to me should be exactly 3 lines long.  In particular, the 
+			\"Interim step:\" JSON must be on one line (do not pretty-print the JSON).
 			Do not put any content in your response after the end of the third line.  If you do, I will not
 			be able to understand the request and our plan will fail.  I will send a message
 			back with the correct value from using that skill.  Then carry on to the next step and repeat 
@@ -129,6 +132,8 @@ public class AgencyApplication implements CommandLineRunner {
 			a. What I need to do: Nothing.  I know the answer.
 			b. How to approach: Nothing to do.
 			c. Final answer: {FINAL ANSWER}
+
+			Every message you send to me should be exactly 3 lines long.
 				""";
 
 		ChatMessage responseFormatMessage = new ChatMessage(ChatMessageRole.USER.value(), responseFormat);
@@ -139,12 +144,34 @@ public class AgencyApplication implements CommandLineRunner {
 		conversation.getMessages().add(ackFormatMessage);
 		logMessage(writer, ackFormatMessage);
 
+		List<SkillDescription> skills = new ArrayList<>(Arrays.asList(
+			new SkillDescription(
+				"'calculate'",
+				"This will take a mathematical expression and calculate its result.",
+				"Do not perform any mathematical calculations yourself.  When you need any calculation performed, this still is the only way for you to get the result.  When you need to use this skill, return as the result of that step the JSON formatted as {\"type\":\"calculate\", \"expression\":\"<calculation to perform>\"}"
+			),
+			new SkillDescription(
+				"'ticker'", 
+				"This will take a stock symbol and date and return the open, high, low, and close value for the stock.", 
+				"Do not ever guess at the value of a stock.  Your ticker skill must be used when a stock price (or a calculation based on a stock price) is needed.  When you need to use this skill, return as the result of that step the JSON formatted as {\"type\":\"ticker\", \"symbol\":\"<ticker symbol>\", \"date\":\"<yyyy-MM-dd>\"}"
+			)
+		));
+		
+		StringBuilder skillsSB = new StringBuilder("Skills").append("\n\n");
+		for(int i = 0; i < skills.size(); i++) {
+			skillsSB.append("Name: " + skills.get(i).getName()).append("\n");
+			skillsSB.append("Description: " + skills.get(i).getDescription()).append("\n");
+			skillsSB.append("Instructions: " + skills.get(i).getInstructions()).append("\n\n");
+		}
+		
 		String skillsDescription = """
-			skills = [
-				{ \"name\": \"calculate\", \"description\":\"This will take a mathematical expression and calculate its result.\", \"instructions\":\"Do not perform any mathematical calculations yourself.  When you need any calculation performed, this still is the only way for you to get the result.  When you need to use this skill, return as the result of that step the JSON formatted as {\"type\":\"calculate\", \"expression\":\"<calculation to perform>\"}" },
-				{ \"name\":\"ticker\", \"description\":\"This will take a stock symbol and date and return the open, high, low, and close value for the stock\", \"instructions\":\"Do not ever guess at the value of a stock.  Your ticker skill must be used when a stock price (or a calculation based on a stock price) is needed.  When you need to use this skill, return as the result of that step the JSON formatted as {\"type\":\"ticker\", \"symbol\":\"<ticker symbol>\", \"date\":\"<yyyy-MM-dd>\"\"} and the result will give the open, high, low, and close prices for that stock on that day." }
-			]
+			Skills
+
+			{skills}
+
 				""";
+		
+		skillsDescription = skillsDescription.replaceAll("\\{skills\\}", skillsSB.toString());
 
 		ChatMessage skillsMessage = new ChatMessage(ChatMessageRole.USER.value(), skillsDescription);
 		conversation.getMessages().add(skillsMessage);
@@ -154,24 +181,16 @@ public class AgencyApplication implements CommandLineRunner {
 		conversation.getMessages().add(ackSkillsMessage);
 		logMessage(writer, ackSkillsMessage);
 
-		String contextNotes = """
-			context_notes = [
-			]
-				""";
-		
-		ChatMessage contextNotesMessage = new ChatMessage(ChatMessageRole.USER.value(), contextNotes);
-		conversation.getMessages().add(contextNotesMessage);
-		logMessage(writer, contextNotesMessage);
+		final Scanner stringScanner = new Scanner(System.in);
 
-		ChatMessage ackContextNotesMessage = new ChatMessage(ChatMessageRole.ASSISTANT.value(), "I understand.");
-		conversation.getMessages().add(ackContextNotesMessage);
-		logMessage(writer, ackContextNotesMessage);
-
-		String prompt = "What is the average of the opening stock price of AAPL and ABC on April 24, 2023?";
+		System.out.println("Here's an example prompt: What is the average of the opening stock price of AAPL and ABC on April 24, 2023?");
+		System.out.println("");
+		System.out.print("> ");
+		String prompt = stringScanner.nextLine();
 		ChatMessage userPromptMessage = new ChatMessage(ChatMessageRole.USER.value(), prompt);
 		conversation.getMessages().add(userPromptMessage);
 
-		final Scanner stringScanner = new Scanner(System.in);
+		
 
 		while(true) {
 
@@ -411,13 +430,13 @@ public class AgencyApplication implements CommandLineRunner {
 		}
 		conversation.getMessages().add(new ChatMessage(ChatMessageRole.USER.value(), skillResponseSB.toString()));
 
-		
 		return true;
 	}
 
 	private void logMessage(PrintWriter writer, ChatMessage msg) {
 		writer.println(msg.getRole() + " > " + msg.getContent());
 		writer.println("");
+		writer.flush();
 	}
 
 	private String getNextMessage(Scanner stringScanner) {

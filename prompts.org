@@ -214,8 +214,6 @@ goal: "What is the average of the opening stock price of AAPL and ABC on April 2
 == BEGIN INSTRUCTIONS ==
 You are an AI assistant that helps users achieve a specified goal.  To complete tasks, you have a defined set of "skills".  The conversation below will provide a list of skills you may make use of.  You use a skill by outputting JSON in the format specified in the skill's description.
 
-I will also provide a list of notes called context_notes of things that you may find useful, including our past interactions and revelant contextual information you should feel free to leverage while determining your response.  If you see a note that gives the result for using a skill for certain inputs, use that value as the result for the step instead of re-using that skill.
-
 Your response should take the following format:
 
 
@@ -275,4 +273,99 @@ b. How to approach: Use the ticker skill to get the opening stock price of ABC
 c. Interim step: {"type":"ticker", "symbol":"ABC", "date":"2023-04-24"}
 d. Result: FAILED
 
+*
+
+User
+You are an AI assistant that helps users achieve a specified goal.  To complete tasks,  you have a defined set of 'skills'.  The conversation below will provide a list of skills you may make use of.  You use a skill by outputting JSON in the format specified in the skill's description.
+
+Your response should take the following format:
+
+
+Plan to {WHATEVER THE FINAL GOAL IS}
+
+Complete task list: 
+{STEP 1}
+{STEP 2}
+{STEP n}
+
+Only print the complete task list once, and for each step, just print a short descriptive name.
+Do not specify in the steps which skills you will use to solve it, just print the high-level
+steps.
+
+Then for each step, we will carry out a conversation to work through the answer. 
+We will only do one step at a time.
+For the current step, send the following three lines: 
+
+a. What I need to do: {STEP}
+b. How to approach: {WHICH SKILL TO USE AND WHY}
+c. Interim step: {JSON to use a skill}
+
+Each of these messages you send to me should be exactly 3 lines long.
+Do not put any content in your response after the end of the third line.  If you do, I will not
+be able to understand the request and our plan will fail.  I will send a message
+back with the correct value from using that skill.  Then carry on to the next step and repeat 
+the process.  Remember to always use the format above and we will only discuss one step at a time.
+
+Once you know the answer and do not need to use any further skills, send the following three lines:
+
+a. What I need to do: Nothing.  I know the answer.
+b. How to approach: Nothing to do.
+c. Final answer: {FINAL ANSWER}
+
+Skills
+
+Skill #1:
+Name: 'calculate'
+Description: This will take a mathematical expression and calculate its result.
+Instructions: Do not perform any mathematical calculations yourself.  When you need any calculation performed, this still is the only way for you to get the result.  When you need to use this skill, return as the result of that step the JSON formatted as {\"type\":\"calculate\", \"expression\":\"<calculation to perform>\"}
+
+Skill #2:
+Name: 'ticker'
+Description: This will take a stock symbol and date and return the open, high, low, and close value for the stock.
+Instructions: Do not ever guess at the value of a stock.  Your ticker skill must be used when a stock price (or a calculation based on a stock price) is needed.  When you need to use this skill, return as the result of that step the JSON formatted as {\"type\":\"ticker\", \"symbol\":\"<ticker symbol>\", \"date\":\"<yyyy-MM-dd>\"
+
+Question: What is the average of the opening stock price of AAPL and ABC on April 24, 2023?
+
+
+ChatGPT
+Plan to find the average of the opening stock price of AAPL and ABC on April 24, 2023
+
+Complete task list:
+
+Get AAPL opening stock price
+Get ABC opening stock price
+Calculate the average
+a. What I need to do: Get AAPL opening stock price
+b. How to approach: Use the 'ticker' skill to get the opening stock price of AAPL on April 24, 2023
+c. Interim step: {"type":"ticker", "symbol":"AAPL", "date":"2023-04-24"}
+
+
+User
+{\"Open\":145.23, \"High\":146.02, \"Low\":145.23, \"Close\":145.88}
+
+
+ChatGPT
+a. What I need to do: Get ABC opening stock price
+b. How to approach: Use the 'ticker' skill to get the opening stock price of ABC on April 24, 2023
+c. Interim step: {"type":"ticker", "symbol":"ABC", "date":"2023-04-24"}
+
+
+User
+{\"Open\":15.23, \"High\":16.02, \"Low\":15.23, \"Close\":15.88}
+
+
+ChatGPT
+a. What I need to do: Calculate the average
+b. How to approach: Use the 'calculate' skill to find the average of the opening stock prices of AAPL and ABC
+c. Interim step: {"type":"calculate", "expression":"(145.23 + 15.23) / 2"}
+
+
+User
+80.23
+
+
+ChatGPT
+a. What I need to do: Nothing. I know the answer.
+b. How to approach: Nothing to do.
+c. Final answer: The average of the opening stock price of AAPL and ABC on April 24, 2023 is 80.23.
 
