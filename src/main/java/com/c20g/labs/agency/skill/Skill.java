@@ -4,4 +4,5 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 public interface Skill {
     String execute(String jsonRequest) throws JsonProcessingException;
+    SkillDescription describe() throws Exception;
 }

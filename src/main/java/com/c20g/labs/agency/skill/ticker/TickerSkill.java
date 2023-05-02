@@ -2,13 +2,15 @@ package com.c20g.labs.agency.skill.ticker;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import com.c20g.labs.agency.skill.Skill;
+import com.c20g.labs.agency.skill.SkillDescription;
+import com.c20g.labs.agency.skill.SkillService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-@Service
+
+@SkillService
 public class TickerSkill implements Skill {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TickerSkill.class);
@@ -35,6 +37,15 @@ public class TickerSkill implements Skill {
             LOGGER.error("Error parsing JSON: " + jsonRequest, e);
         }
         return null;
+    }
+
+    @Override
+    public SkillDescription describe() throws Exception {
+        return new SkillDescription(
+            "ticker", 
+            "This will take a stock symbol and date and return the open, high, low, and close value for the stock.", 
+            "Do not ever guess at the value of a stock.  Your ticker skill must be used when a stock price (or a calculation based on a stock price) is needed.  When you need to use this skill, return as the result of that step the JSON formatted as {\"type\":\"ticker\", \"symbol\":\"<ticker symbol>\", \"date\":\"<yyyy-MM-dd>\"}"
+        );
     }
     
 }

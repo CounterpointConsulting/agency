@@ -27,10 +27,9 @@ import com.c20g.labs.agency.chat.ConversationHistory;
 import com.c20g.labs.agency.config.AgencyConfiguration;
 import com.c20g.labs.agency.embeddings.EmbeddingService;
 import com.c20g.labs.agency.milvus.MilvusService;
-import com.c20g.labs.agency.skill.SkillDescription;
+import com.c20g.labs.agency.skill.Skill;
+import com.c20g.labs.agency.skill.SkillLocator;
 import com.c20g.labs.agency.skill.SkillRequest;
-import com.c20g.labs.agency.skill.calculate.CalculateSkill;
-import com.c20g.labs.agency.skill.ticker.TickerSkill;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatMessage;
@@ -56,10 +55,7 @@ public class AgencyApplication implements CommandLineRunner {
 	private EmbeddingService embeddingService;
 
 	@Autowired
-	private CalculateSkill calculateSkill;
-
-	@Autowired
-	private TickerSkill tickerSkill;
+	private SkillLocator skillLocator;
 
 	@Autowired
 	private AgencyConfiguration agencyConfiguration;
@@ -144,31 +140,20 @@ public class AgencyApplication implements CommandLineRunner {
 		conversation.getMessages().add(ackFormatMessage);
 		logMessage(writer, ackFormatMessage);
 
-		List<SkillDescription> skills = new ArrayList<>(Arrays.asList(
-			new SkillDescription(
-				"'calculate'",
-				"This will take a mathematical expression and calculate its result.",
-				"Do not perform any mathematical calculations yourself.  When you need any calculation performed, this still is the only way for you to get the result.  When you need to use this skill, return as the result of that step the JSON formatted as {\"type\":\"calculate\", \"expression\":\"<calculation to perform>\"}"
-			),
-			new SkillDescription(
-				"'ticker'", 
-				"This will take a stock symbol and date and return the open, high, low, and close value for the stock.", 
-				"Do not ever guess at the value of a stock.  Your ticker skill must be used when a stock price (or a calculation based on a stock price) is needed.  When you need to use this skill, return as the result of that step the JSON formatted as {\"type\":\"ticker\", \"symbol\":\"<ticker symbol>\", \"date\":\"<yyyy-MM-dd>\"}"
-			)
-		));
+		Map<String, Skill> skills = skillLocator.locate(Arrays.asList("ticker", "calculate"));
 		
 		StringBuilder skillsSB = new StringBuilder("Skills").append("\n\n");
-		for(int i = 0; i < skills.size(); i++) {
-			skillsSB.append("Name: " + skills.get(i).getName()).append("\n");
-			skillsSB.append("Description: " + skills.get(i).getDescription()).append("\n");
-			skillsSB.append("Instructions: " + skills.get(i).getInstructions()).append("\n\n");
+		for(String k : skills.keySet()) {
+			Skill s = skills.get(k);
+			skillsSB.append("Name: " + s.describe().getName()).append("\n");
+			skillsSB.append("Description: " + s.describe().getDescription()).append("\n");
+			skillsSB.append("Instructions: " + s.describe().getInstructions()).append("\n\n");
 		}
-		
+
 		String skillsDescription = """
 			Skills
 
 			{skills}
-
 				""";
 		
 		skillsDescription = skillsDescription.replaceAll("\\{skills\\}", skillsSB.toString());
@@ -220,7 +205,7 @@ public class AgencyApplication implements CommandLineRunner {
 
 			String nextMessage = null;
 			try {
-				boolean addedMessageFromSkill = parseResponseForSkillJSON(aiResponse, conversation);
+				boolean addedMessageFromSkill = parseResponseForSkillJSON(aiResponse, conversation, skills);
 				if(addedMessageFromSkill) {
 					LOGGER.debug("The skill added a response automatically, proceeding...");
 					continue;
@@ -314,7 +299,7 @@ public class AgencyApplication implements CommandLineRunner {
 	}
 
 
-	private boolean parseResponseForSkillJSON(String response, ConversationHistory conversation) throws Exception {
+	private boolean parseResponseForSkillJSON(String response, ConversationHistory conversation, Map<String, Skill> skills) throws Exception {
 		LOGGER.debug("Analyzing the response for skill JSON");
 		
 		String[] lines = response.split("\n");
@@ -342,7 +327,7 @@ public class AgencyApplication implements CommandLineRunner {
 		String skillLine = null;
 		for(int i = 0; i < lines.length; i++) {
 			if(lines[i].contains("Interim step: {")) {
-				skillLine = lines[i].substring(lines[i].indexOf("{"));
+				skillLine = lines[i].trim().substring(lines[i].indexOf("{"));
 				skillRequests.add(skillLine);
 				break;
 			}
@@ -367,31 +352,9 @@ public class AgencyApplication implements CommandLineRunner {
 			try {
 				ObjectMapper objectMapper = new ObjectMapper();
 				SkillRequest skillRequest = objectMapper.readValue(req, SkillRequest.class);
-				if("ticker".equals(skillRequest.getType())) {
-					try {
-						String skillResult = tickerSkill.execute(req);
-						LOGGER.debug("Get actual skill result: " + skillResult);
-						skillResults.put(req, skillResult);
-					}
-					catch(Exception e) {
-						LOGGER.error("Error executing skill: " + req, e);
-						skillResults.put(req, "ERROR");
-					}
-				}
-				else if("calculate".equals(skillRequest.getType())) {
-					try {
-						String skillResult = calculateSkill.execute(req);
-						LOGGER.debug("Got actual skill result: " + skillResult);
-						skillResults.put(req, skillResult);
-					}
-					catch(Exception e) {
-						LOGGER.error("Error executing skill: " + req, e);
-						skillResults.put(req, "ERROR");
-					}
-				}
-				else {
-					sendGenericRetryRequest = true;
-				}
+				String skillResult = skills.get(skillRequest.getType()).execute(req);
+				LOGGER.debug("Get actual skill result: " + skillResult);
+				skillResults.put(req, skillResult);				
 			}
 			catch(Exception e) {
 				sendGenericRetryRequest = true;
