@@ -1,5 +1,6 @@
 package com.c20g.labs.agency.config;
 
+import java.time.Duration;
 import java.util.HashMap;
 
 // import org.slf4j.Logger;
@@ -13,6 +14,7 @@ import com.theokanning.openai.completion.chat.ChatCompletionRequest.ChatCompleti
 import com.theokanning.openai.embedding.EmbeddingRequest;
 import com.theokanning.openai.embedding.EmbeddingRequest.EmbeddingRequestBuilder;
 import com.theokanning.openai.service.OpenAiService;
+
 
 @Configuration
 public class OpenAiConfiguration {
@@ -41,7 +43,7 @@ public class OpenAiConfiguration {
             throw new Exception("OpenAI API key not set.");
         }
 
-        return new OpenAiService(openAIApiKey);
+        return new OpenAiService(openAIApiKey, (Duration.ZERO).plusMillis(60000));
     }
 
     @Bean
