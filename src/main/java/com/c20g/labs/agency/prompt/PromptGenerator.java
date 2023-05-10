@@ -22,7 +22,10 @@ public abstract class PromptGenerator {
 
 	public List<String> getTemplateInputs() {
 		Set<String> inputSet = new HashSet<>();
-		Pattern pattern = Pattern.compile("\\{.+\\}");
+		// TODO: is this too greedy?  like might mess up if there are two inputs on the same line?
+		// check if it returns {firstname} {lastname} or {firstname\} \{lastname}, which wouldnt be
+		// in the skills map
+		Pattern pattern = Pattern.compile("\\{.+\\}"); 
 		Matcher matcher = pattern.matcher(template);
 		while(matcher.find()) {
 			// System.out.println("Found match: " + matcher.group());

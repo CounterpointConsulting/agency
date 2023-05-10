@@ -16,22 +16,28 @@ public class TickerSkill implements Skill {
     private static final Logger LOGGER = LoggerFactory.getLogger(TickerSkill.class);
 
     @Override
-    public String execute(String jsonRequest) throws JsonProcessingException {
+    public String execute(String jsonRequest) throws Exception {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             TickerSkillRequest q = objectMapper.readValue(jsonRequest, TickerSkillRequest.class);
             LOGGER.debug("Getting ticker values for: " + q.getSymbol() + " on " + q.getDate());
 
-            if("{\"type\":\"ticker\", \"symbol\":\"AAPL\", \"date\":\"2023-04-24\"}".equals(jsonRequest)) {
+            // this is just two data points I'm using for testing, stock APIs are 'spensive
+
+            if("AAPL".equals(q.getSymbol()) && "2023-04-24".equals(q.getDate())) {
 				String tickerSkillTxt = "{\"Open\":145.23, \"High\":146.02, \"Low\":145.23, \"Close\":145.88}";
 				LOGGER.debug("Skill result > " + tickerSkillTxt);
 				return tickerSkillTxt;
 			}
-			else if("{\"type\":\"ticker\", \"symbol\":\"ABC\", \"date\":\"2023-04-24\"}".equals(jsonRequest)) {
+			else if("ABC".equals(q.getSymbol()) && "2023-04-24".equals(q.getDate())) {
 				String tickerSkillTxt = "{\"Open\":15.23, \"High\":16.02, \"Low\":15.23, \"Close\":15.88}";
 				LOGGER.debug("Skill result > " + tickerSkillTxt);
 				return tickerSkillTxt;
 			}
+            else {
+                throw new Exception(
+                    "Ticker skill couldn't find a result for " + q.getSymbol() + " / " + q.getDate());
+            }
         }
         catch(JsonProcessingException e) {
             LOGGER.error("Error parsing JSON: " + jsonRequest, e);

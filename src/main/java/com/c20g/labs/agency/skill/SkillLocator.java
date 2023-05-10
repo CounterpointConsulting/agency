@@ -1,5 +1,6 @@
 package com.c20g.labs.agency.skill;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,11 @@ public class SkillLocator {
     private ApplicationContext applicationContext;
 
     private Map<String,Object> beans;
+
+    // gets a single Skill
+    public Skill locate(String name) throws Exception {
+        return locate(Arrays.asList(name)).get(name);
+    }
 
     // gets a subset of all the registered SkillServices, useful when you
     // want to save prompt tokens and don't need all the skills at the

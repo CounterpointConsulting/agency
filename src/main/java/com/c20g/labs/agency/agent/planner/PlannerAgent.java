@@ -131,7 +131,7 @@ public class PlannerAgent implements Agent {
 		conversation.getMessages().add(ackFormatMessage);
 		logUtils.logMessage(writer, ackFormatMessage);
 
-		Map<String, Skill> skills = skillLocator.locate(Arrays.asList("ticker", "calculate"));
+		Map<String, Skill> skills = skillLocator.locate(Arrays.asList("ticker", "calculate", "python"));
 		
 		StringBuilder skillsSB = new StringBuilder("Skills").append("\n\n");
 		for(String k : skills.keySet()) {
@@ -170,15 +170,11 @@ public class PlannerAgent implements Agent {
 			ChatCompletionRequest chatCompletionRequest = requestBuilder
 				.messages(conversation.getMessages())
 				.build();
-
-			StringBuilder sb = new StringBuilder();
 				
 			System.out.println();
 			ChatCompletionResult chatCompletion = openAiService.createChatCompletion(chatCompletionRequest);
 			Usage usage = chatCompletion.getUsage();
-			LOGGER.debug("Used " + usage.getPromptTokens() + " tokens for prompt");
-			LOGGER.debug("Used " + usage.getCompletionTokens() + " tokens for response");
-			LOGGER.debug("Used " + usage.getTotalTokens() + " tokens total");
+            LOGGER.debug("Tokens: (" + usage.getPromptTokens() + " / " + usage.getCompletionTokens() + ")");
 			
 			String aiResponse = chatCompletion.getChoices().get(0).getMessage().getContent();
 			System.out.println(aiResponse);

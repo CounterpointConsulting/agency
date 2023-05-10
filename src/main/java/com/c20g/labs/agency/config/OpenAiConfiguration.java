@@ -63,4 +63,8 @@ public class OpenAiConfiguration {
         return builder;
     }
 
+    public String chatModel() {
+        return this.openAIChatModel;
+    }
+
 }

@@ -15,6 +15,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import com.c20g.labs.agency.agent.planner.PlannerAgent;
+import com.c20g.labs.agency.agent.summarizer.SummarizerAgent;
 import com.c20g.labs.agency.chat.ConversationHistory;
 import com.c20g.labs.agency.config.AgencyConfiguration;
 import com.c20g.labs.agency.embeddings.EmbeddingService;
@@ -45,12 +46,6 @@ public class AgencyApplication implements CommandLineRunner {
 	private MilvusService milvusService;
 
 	@Autowired
-	private EmbeddingService embeddingService;
-
-	@Autowired
-	private SkillLocator skillLocator;
-
-	@Autowired
 	private AgencyConfiguration agencyConfiguration;
 
 	@Autowired
@@ -61,6 +56,9 @@ public class AgencyApplication implements CommandLineRunner {
 
 	@Autowired
 	private PlannerAgent plannerAgent;
+
+	@Autowired
+	private SummarizerAgent summarizerAgent;
 	
 	public static void main(String[] args) {
 		SpringApplication.run(AgencyApplication.class, args);
@@ -87,6 +85,7 @@ public class AgencyApplication implements CommandLineRunner {
 		System.out.println("1. Action Planner");
 		System.out.println("2. Summarizer Agent");
 		System.out.println("3. ChatGPT");
+		System.out.println("4. Summarizer");
 		System.out.println();
 
 		System.out.print("Enter the number to run: ");
@@ -98,7 +97,7 @@ public class AgencyApplication implements CommandLineRunner {
 				plannerAgent.run("", conversation);
 			}
 			else if("2".equals(choice)) {
-				System.out.println("Not implemented yet");
+				summarizerAgent.run("", conversation);
 			}
 			else if("3".equals(choice)) {
 
@@ -157,6 +156,9 @@ public class AgencyApplication implements CommandLineRunner {
 				}
 				stringScanner.close();
 				openAiService.shutdownExecutor();
+			}
+			else if("4".equals(choice)) {
+				summarizerAgent.run("", conversation);
 			}
 			else {
 				System.out.println("Invalid choice.  Please enter the number to run: ");

@@ -7,7 +7,7 @@ import com.theokanning.openai.completion.chat.ChatMessage;
 
 public class ConversationHistory {
 
-	private List<ChatMessage> messages = new ArrayList<>();
+	protected List<ChatMessage> messages = new ArrayList<>();
 
 	public List<ChatMessage> getMessages() {
 		return messages;
