@@ -77,95 +77,21 @@ public class AgencyApplication implements CommandLineRunner {
 		LOGGER.info("Writing conversation to log file: " + logFile.getAbsolutePath());
 		ConversationHistory conversation = new ConversationHistory();
 
+		conversation.getMessages().add(new ChatMessage(
+			ChatMessageRole.SYSTEM.value(), 
+			"You are a helpful general-purpose AI.  Respond to the user's prompts in a helpful manner."));
+
+		System.out.println("PlannerGPT > ");
 		String nextMessage = null;
+		while((nextMessage = stringScanner.nextLine()) != null) {
 
-		System.out.println("Available agents: ");
-		System.out.println("-----------------");
-
-		System.out.println("1. Action Planner");
-		System.out.println("2. Summarizer Agent");
-		System.out.println("3. ChatGPT");
-		System.out.println("4. Summarizer");
-		System.out.println();
-
-		System.out.print("Enter the number to run: ");
-
-		String choice = stringScanner.nextLine();
-
-		while(true) {
-			if("1".equals(choice)) {
-				plannerAgent.run("", conversation);
+			if("".equals(nextMessage)) {
+				System.exit(0);
 			}
-			else if("2".equals(choice)) {
-				summarizerAgent.run("", conversation);
-			}
-			else if("3".equals(choice)) {
 
-				conversation.getMessages().add(
-						new ChatMessage(ChatMessageRole.SYSTEM.value(), 
-						"You are a helpful AI agent"));
+			
 
-				
-				while((nextMessage = chatUtils.getNextLine(stringScanner)) != null) {
-
-					// quit on blank line
-					if("".equals(nextMessage)) {
-						stringScanner.close();
-						openAiService.shutdownExecutor();
-						System.exit(0);
-					}
-
-					// handle commands
-					Set<String> commandSet = new HashSet<>();
-					commandSet.add("\\p");
-					if(commandSet.contains(nextMessage)) {
-						// print conversation
-						if("\\p".equals(nextMessage)) {
-							String history = conversation.formattedHistory();
-							LOGGER.debug("\nCONVERSATION HISTORY\n===\n" + history + "\n\n");
-						}
-					} 
-					else {
-
-						ChatMessage userInputMessage = new ChatMessage(ChatMessageRole.USER.value(), nextMessage);
-						conversation.getMessages().add(userInputMessage);
-
-						System.out.println("Sending request to OpenAI...");
-						System.out.println();
-
-						ChatCompletionRequest chatCompletionRequest = requestBuilder
-							.messages(conversation.getMessages())
-							.build();
-							
-						System.out.println();
-						ChatCompletionResult chatCompletion = openAiService.createChatCompletion(chatCompletionRequest);
-						Usage usage = chatCompletion.getUsage();
-						LOGGER.debug("Used " + usage.getPromptTokens() + " tokens for prompt");
-						LOGGER.debug("Used " + usage.getCompletionTokens() + " tokens for response");
-						LOGGER.debug("Used " + usage.getTotalTokens() + " tokens total");
-						
-						String aiResponse = chatCompletion.getChoices().get(0).getMessage().getContent();
-						System.out.println(aiResponse);
-						ChatMessage aiResponseMessage = new ChatMessage(ChatMessageRole.ASSISTANT.value(), aiResponse);
-						conversation.getMessages().add(aiResponseMessage);
-						logUtils.logMessage(writer, aiResponseMessage);
-						System.out.println();	
-						
-					}
-					
-				}
-				stringScanner.close();
-				openAiService.shutdownExecutor();
-			}
-			else if("4".equals(choice)) {
-				summarizerAgent.run("", conversation);
-			}
-			else {
-				System.out.println("Invalid choice.  Please enter the number to run: ");
-				choice = stringScanner.nextLine();
-				continue;
-			}
-		}
+		} 
 		
 	}
 
