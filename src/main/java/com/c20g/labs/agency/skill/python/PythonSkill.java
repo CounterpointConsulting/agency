@@ -68,15 +68,15 @@ public class PythonSkill implements Skill {
                 exprInputMap.put("description", q.getDescription());
 
                 ChatMessage systemMessage = new ChatMessage(ChatMessageRole.SYSTEM.value(), "You are a helpful AI agent that solves problems by writing Python code for the user to execute.");
-                conversation.getMessages().add(systemMessage);
+                conversation.getAllMessages().add(systemMessage);
 
                 PromptGenerator p = new NoShotPrompt(reqTemplate);
                 ChatMessage userPrompt = new ChatMessage(ChatMessageRole.USER.value(), p.generate(exprInputMap));
-                conversation.getMessages().add(userPrompt);
+                conversation.getAllMessages().add(userPrompt);
 
                 ChatMessage aiResponseMsg = chatUtils.getNextChatResponse(conversation);
                 System.out.println("\n" + aiResponseMsg.getContent() + "\n");
-                conversation.getMessages().add(aiResponseMsg);
+                conversation.getAllMessages().add(aiResponseMsg);
 
                 File tmpPython = File.createTempFile(agencyConfiguration.getChatLogDirectory(), ".agency.python.py");
                 LOGGER.debug("Writing python code to " + tmpPython.getAbsolutePath());

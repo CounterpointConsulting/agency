@@ -7,19 +7,23 @@ import com.theokanning.openai.completion.chat.ChatMessage;
 
 public class ConversationHistory {
 
-	protected List<ChatMessage> messages = new ArrayList<>();
+	protected List<ChatMessage> allMessages = new ArrayList<>();
 
-	public List<ChatMessage> getMessages() {
-		return messages;
+	public List<ChatMessage> getAllMessages() {
+		return allMessages;
 	}
 
-	public void setMessages(List<ChatMessage> messages) {
-		this.messages = messages;
+	public void addMessage(ChatMessage message) {
+		this.allMessages.add(message);
 	}
 
-	public String formattedHistory() {
+	public void setAllMessages(List<ChatMessage> messages) {
+		this.allMessages = messages;
+	}
+
+	public String formattedFullHistory() {
 		StringBuilder sb = new StringBuilder();
-		for(ChatMessage m : messages) {
+		for(ChatMessage m : allMessages) {
 			sb.append(m.getRole()).append(" > ").append(m.getContent()).append("\n\n");
 		}
 		return sb.toString();

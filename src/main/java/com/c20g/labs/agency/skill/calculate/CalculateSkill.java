@@ -67,15 +67,15 @@ public class CalculateSkill implements Skill {
                 exprInputMap.put("expression", q.getExpression());
 
                 ChatMessage systemMessage = new ChatMessage(ChatMessageRole.SYSTEM.value(), "You are a helpful AI agent that helps users calculate numerical results.");
-                conversation.getMessages().add(systemMessage);
+                conversation.getAllMessages().add(systemMessage);
 
                 PromptGenerator p = new NoShotPrompt(reqTemplate);
                 ChatMessage userPrompt = new ChatMessage(ChatMessageRole.USER.value(), p.generate(exprInputMap));
-                conversation.getMessages().add(userPrompt);
+                conversation.getAllMessages().add(userPrompt);
 
                 ChatMessage aiResponseMsg = chatUtils.getNextChatResponse(conversation);
                 System.out.println("\n" + aiResponseMsg.getContent() + "\n");
-                conversation.getMessages().add(aiResponseMsg);
+                conversation.getAllMessages().add(aiResponseMsg);
 
                 File tmpPython = File.createTempFile(agencyConfiguration.getChatLogDirectory(), ".agency.calculate.py");
                 LOGGER.debug("Writing python code to " + tmpPython.getAbsolutePath());

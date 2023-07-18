@@ -1,10 +1,6 @@
 package com.c20g.labs.agency.agent.planner;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,12 +14,7 @@ import org.springframework.stereotype.Service;
 import com.c20g.labs.agency.agent.Agent;
 import com.c20g.labs.agency.chat.ConversationHistory;
 import com.c20g.labs.agency.config.AgencyConfiguration;
-import com.c20g.labs.agency.skill.Skill;
-import com.c20g.labs.agency.skill.SkillLocator;
-import com.c20g.labs.agency.skill.SkillRequest;
 import com.c20g.labs.agency.util.ChatUtils;
-import com.c20g.labs.agency.util.LogUtils;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.theokanning.openai.Usage;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatCompletionResult;
@@ -42,266 +33,106 @@ public class PlannerAgent implements Agent {
     private AgencyConfiguration agencyConfiguration;
 
     @Autowired
-    private LogUtils logUtils;
-
-    @Autowired
-    private ChatUtils chatUtils;
-
-    @Autowired
-    private SkillLocator skillLocator;
-
-    @Autowired
 	private OpenAiService openAiService;
 
     @Autowired
     private ChatCompletionRequestBuilder requestBuilder;
 
+
     @Override
-    public String run(String input, ConversationHistory parentConversation) throws Exception {
+    public ConversationHistory run(String input, ConversationHistory parentConversation) throws Exception {
         
-        File logFile = File.createTempFile(agencyConfiguration.getChatLogDirectory(), ".planner.agency.log");
-		PrintWriter writer = new PrintWriter(new FileWriter(logFile.getAbsolutePath()));
-		LOGGER.info("Writing conversation to log file: " + logFile.getAbsolutePath());
 		ConversationHistory conversation = new ConversationHistory();
 
-        Scanner stringScanner = new Scanner(System.in);
+		String preludeString = """
+			You are an AI agent designed to interact with human users and respond to arbitrary requests 
+			or conversation.  You are the leader of a team of special agents that provide you with an 
+			array of services.  Your task is primarily to develop a plan to respond to the user's requests.  
+			Think through the problem step-by-step and generate a plan -- each step should be carried out by 
+			one agent.  If your plan requires a step that none of your agents can complete, recommend and 
+			describe in detail a new type of agent or operation that would be able to solve the step.
 
-		String systemMessage = "You are an AI assistant that helps users achieve a specified goal.";
-		conversation.getMessages().add(new ChatMessage(ChatMessageRole.SYSTEM.value(), systemMessage));
+			Your team of agents includes:
 
-		String prelude = """
-			You are an AI assistant that helps users achieve a specified goal.  To complete tasks, 
-			you have a defined set of 'skills'.  The conversation below will provide a list of 
-			skills you may make use of.  You use a skill by outputting JSON in the format specified 
-			in the skill's description.
+			Name: Alice_Internet
+			Description: Can perform network and web operations
+			Operations: google_search, wikipedia_search, retrieve_url
+
+			Name: Bob_Filesystem
+			Description: Can perform filesystem operations, like saving and deleting files or retrieving file content
+			Operations: write_file, read_file, delete_file, open_file_with_executable
+
+			Name: Charlie_Programmer
+			Description: Can perform tasks generally done by human software developer, which can often be used to solve general problems when combined
+			Operations: write_python_script, execute_python_script
+
+			Name: Diana_LLM
+			Description: Can interact with GPT models like GPT-3.5 or GPT-4, for general conversation or problem solving
+			Operations: send_message, send_message_with_history
+
+			Do not provide any additional text or commentary other than the plan.  Do not answer anything by yourself without consulting your team of agents.  Here's a few example interaction:
+
+			=== START EXAMPLE 1 ===
+			user> Should I bring an umbrella with me today when I go outside?
+			assistant> 
+			Step 1: Use InternetBot to perform "google_search" to find weather near you
+			Step 2: Use LLMBot to perform "send_message" and ask whether the current weather retrieved from "google_search" requires an umbrella.
+			Step 3: Respond to the user with the response from LLMBot.
+			=== EXAMPLE END ===
+
+			=== START EXAMPLE 2 ===
+			user> Is opening a Subway franchise in New York City a good idea for a business that will be profitable in 5 years?
+			assistant> 
+			Step 1: Use InternetBot to perform "google_search" for "What is the cost of opening a Subway franchise?"
+			Step 2: If the answer is not directly in the search results from Step 1, use InternetBot to perform "retrieve_url" to retrieve likely pages from the search results.
+			Step 3: Use InternetBot to perform "google_search" for "How many square feet are in the average Subway location?"
+			Step 4: If the answer isn't directly in the search results from Step 3, use InternetBot to perform "retrieve_url" to retrieve likely pages from the search results.
+			Step 5: Use InternetBot to perform "google_search" for "How expensive is a retail location in lower Manhatten for {{number of square feet}} square feet?", using the number of square feet returned from Step 3 or Step 4.
+			Step 6: If the answer isn't directly in the search results from Step 5, use InternetBot to perform "retrieve_url" to retrieve likely pages from the search results.
+			Step 7: Use InternetBot to perform "google_search" for "What the average revenue of a Subway location in lower Manhatten?"
+			Step 8: If the answer isn't directly in the search results from Step 7, use InternetBot to perform "retrieve_url" to retrieve likely pages from the search results.
+			Step 9: Use LLMBot to perform "send_message", sending the results of the previous steps in the message, and asking LLMBot whether, given the numbers retrieved whether a Subway franchise in New York City will be profitable in 10 years.
+			Step 10: Respond to the user with the response from LLMBot.
+			=== EXAMPLE END ===
+
+			=== START EXAMPLE 3 ===
+			user> Create a CSV file in the directory "/tmp/" called "state_facts.csv".  The CSV file should have three columns and be comma-separated.  The columns should be: 
+
+			{{state_name}}, {{state_abbreviation}}, {{state_population}}
+
+			There should be one row for each state in the USA.
+			assistant> 
+			Step 1: Use InternetBot to perform "google_search" for "What are the 50 states in the USA?".  That should contain a page that gives the states and their abbreviations.
+			Step 2: Use InternetBot to perform "retrieve_url" to retrieve likely pages from the search results from Step 1 until you find one that contains the states and abbreviations.
+			Step 3: Use InternetBot to perform "google_search" for "US state populations".  That should contain a page that gives the population per state.
+			Step 4: Use InternetBot to perform "retrieve_url" to retrieve likely pages from the search results from Step 3 until you find one that contains the state populations.
+			Step 5: Use LLMBot to perform "send_message", sending the results of the previous steps in the message, and asking LLMBot to assemble the data into a CSV format sorted alphabetically by state abbreviation
+			Step 6: Use FilesystemBot to perform "write_file", sending the results of Step 5 in the message.
+			=== EXAMPLE END ===
+
 				""";
-		
-		ChatMessage preludeMessage = new ChatMessage(ChatMessageRole.USER.value(), prelude);
-		conversation.getMessages().add(preludeMessage);
-		logUtils.logMessage(writer, preludeMessage);
-		
-		ChatMessage ackPreludeMessage = new ChatMessage(ChatMessageRole.ASSISTANT.value(), "I understand.");
-		conversation.getMessages().add(ackPreludeMessage);
-		logUtils.logMessage(writer, ackPreludeMessage);
 
-		String responseFormat = """
-			Your response should take the following format:
+		conversation.addMessage(new ChatMessage(ChatMessageRole.SYSTEM.value(), preludeString));
+		conversation.addMessage(new ChatMessage(ChatMessageRole.USER.value(), input));
 
-
-			Plan to {WHATEVER THE FINAL GOAL IS}
-
-			Complete task list: 
-			{STEP 1}
-			{STEP 2}
-			{STEP n}
-
-			Only print the complete task list once, and for each step, just print a short descriptive name.
-			Do not specify in the steps which skills you will use to solve it, just print the high-level
-			steps.
-
-			Then for each step, we will carry out a conversation to work through the answer. 
-			We will only do one step at a time.
-			For the current step, send the following three lines: 
-
-			a. What I need to do: {STEP}
-			b. How to approach: {WHICH SKILL TO USE AND WHY}
-			c. Interim step: {JSON to use a skill}
-
-			Each of these messages you send to me should be exactly 3 lines long.  In particular, the 
-			\"Interim step:\" JSON must be on one line (do not pretty-print the JSON).
-			Do not put any content in your response after the end of the third line.  If you do, I will not
-			be able to understand the request and our plan will fail.  I will send a message
-			back with the correct value from using that skill.  Then carry on to the next step and repeat 
-			the process.  Remember to always use the format above and we will only discuss one step at a time.
-
-			Once you know the answer and do not need to use any further skills, send the following three lines:
-
-			a. What I need to do: Nothing.  I know the answer.
-			b. How to approach: Nothing to do.
-			c. Final answer: {FINAL ANSWER}
-
-			Every message you send to me should be exactly 3 lines long.
-				""";
-
-		ChatMessage responseFormatMessage = new ChatMessage(ChatMessageRole.USER.value(), responseFormat);
-		conversation.getMessages().add(responseFormatMessage);
-		logUtils.logMessage(writer, responseFormatMessage);
-
-		ChatMessage ackFormatMessage = new ChatMessage(ChatMessageRole.ASSISTANT.value(), "I understand.");
-		conversation.getMessages().add(ackFormatMessage);
-		logUtils.logMessage(writer, ackFormatMessage);
-
-		Map<String, Skill> skills = skillLocator.locate(Arrays.asList("ticker", "calculate", "python"));
-		
-		StringBuilder skillsSB = new StringBuilder("Skills").append("\n\n");
-		for(String k : skills.keySet()) {
-			Skill s = skills.get(k);
-			skillsSB.append("Name: " + s.describe().getName()).append("\n");
-			skillsSB.append("Description: " + s.describe().getDescription()).append("\n");
-			skillsSB.append("Instructions: " + s.describe().getInstructions()).append("\n\n");
-		}
-
-		String skillsDescription = """
-			Skills
-
-			{skills}
-				""";
-		
-		skillsDescription = skillsDescription.replaceAll("\\{skills\\}", skillsSB.toString());
-
-		ChatMessage skillsMessage = new ChatMessage(ChatMessageRole.USER.value(), skillsDescription);
-		conversation.getMessages().add(skillsMessage);
-		logUtils.logMessage(writer, skillsMessage);
-
-		ChatMessage ackSkillsMessage = new ChatMessage(ChatMessageRole.ASSISTANT.value(), "I understand.");
-		conversation.getMessages().add(ackSkillsMessage);
-		logUtils.logMessage(writer, ackSkillsMessage);
-
-		System.out.println("Here's an example prompt: What is the average of the opening stock price of AAPL and ABC on April 24, 2023?");
-		String prompt = chatUtils.getNextLine(stringScanner);
-		ChatMessage userPromptMessage = new ChatMessage(ChatMessageRole.USER.value(), prompt);
-		conversation.getMessages().add(userPromptMessage);
-
-		while(true) {
-
-			System.out.println("Sending request to OpenAI...");
-			System.out.println();
-
-			ChatCompletionRequest chatCompletionRequest = requestBuilder
-				.messages(conversation.getMessages())
-				.build();
-				
-			System.out.println();
-			ChatCompletionResult chatCompletion = openAiService.createChatCompletion(chatCompletionRequest);
-			Usage usage = chatCompletion.getUsage();
-            LOGGER.debug("Tokens: (" + usage.getPromptTokens() + " / " + usage.getCompletionTokens() + ")");
+		ChatCompletionRequest chatCompletionRequest = requestBuilder
+			.messages(conversation.getAllMessages())
+			.build();
 			
-			String aiResponse = chatCompletion.getChoices().get(0).getMessage().getContent();
-			System.out.println(aiResponse);
-			ChatMessage aiResponseMessage = new ChatMessage(ChatMessageRole.ASSISTANT.value(), aiResponse);
-			conversation.getMessages().add(aiResponseMessage);
-			logUtils.logMessage(writer, aiResponseMessage);
-			System.out.println();
-
-			try {
-				boolean addedMessageFromSkill = parseResponseForSkillJSON(aiResponse, conversation, skills);
-				if(addedMessageFromSkill) {
-					LOGGER.debug("The skill added a response automatically, proceeding...");
-					continue;
-				}
-				else {
-					LOGGER.debug("Manual intervention required.");
-					String userInput = chatUtils.getNextLine(stringScanner);
-                    ChatMessage exceptionMessage = new ChatMessage(ChatMessageRole.USER.value(), userInput);
-                    conversation.getMessages().add(exceptionMessage);
-                    continue;
-				}
-			}
-			catch(Exception badResponseFormatException) {
-				ChatMessage exceptionMessage = new ChatMessage(ChatMessageRole.USER.value(), badResponseFormatException.getMessage());
-				conversation.getMessages().add(exceptionMessage);
-				logUtils.logMessage(writer, exceptionMessage);
-				LOGGER.debug("Caught a bad response format from OpenAI.  Castigation sent.");
-				continue;
-			}
-        }
-    }
-
-    private boolean parseResponseForSkillJSON(String response, ConversationHistory conversation, Map<String, Skill> skills) throws Exception {
-		LOGGER.debug("Analyzing the response for skill JSON");
+		ChatCompletionResult chatCompletion = openAiService.createChatCompletion(chatCompletionRequest);
+		Usage usage = chatCompletion.getUsage();
+		LOGGER.debug("Used " + usage.getPromptTokens() + " tokens for prompt");
+		LOGGER.debug("Used " + usage.getCompletionTokens() + " tokens for response");
+		LOGGER.debug("Used " + usage.getTotalTokens() + " tokens total");
 		
-		String[] lines = response.split("\n");
+		String aiResponse = chatCompletion.getChoices().get(0).getMessage().getContent();
+		LOGGER.debug("Planner Agent Response > " + aiResponse);
 
-		boolean sendGenericRetryRequest = false;
+		ChatMessage aiResponseMessage = new ChatMessage(ChatMessageRole.ASSISTANT.value(), aiResponse);
+		conversation.addMessage(aiResponseMessage);
 
-		// this is a little too restrictive.  it's hard to get chatgpt to 
-		// respond without additional commentary, so it'll generally have more than 3 lines
-		// that said, it usually DOES work correctly the second time.  just not...  you know.
+		return conversation;
 
-		/*
-		// if(lines.length > 3) {
-		// 	throw new Exception(
-		// 		Please resend and only print the 3 lines specified:
-
-		// 		a. What I need to do: {STEP}
-		// 		b. How to approach: {WHICH SKILL TO USE AND WHY}
-		// 		c. Interim step: {JSON to use a skill}
-		// 	);
-		}
-		*/
-
-		// yes, there are better ways to do this.  be quiet.
-		List<String> skillRequests = new ArrayList<>();
-		String skillLine = null;
-		for(int i = 0; i < lines.length; i++) {
-			if(lines[i].contains("Interim step: {")) {
-				skillLine = lines[i].trim().substring(lines[i].indexOf("{"));
-				skillRequests.add(skillLine);
-				break;
-			}
-		}
-
-		if(skillLine == null) {
-			// try again and just see if we can find any json that looks like a skill request
-			for(int i = 0; i < lines.length; i++) {
-				if(lines[i].contains("{\"type\":\"") && lines[i].endsWith("}")) {
-					skillLine = lines[i].substring(lines[i].indexOf("{"));
-					skillRequests.add(skillLine);
-					break;
-				}
-			}	
-		}
-
-		Map<String, String> skillResults = new HashMap<>();
-
-		for(String req : skillRequests) {
-			LOGGER.debug("Skill to execute: " + req);
-
-			try {
-				ObjectMapper objectMapper = new ObjectMapper();
-				SkillRequest skillRequest = objectMapper.readValue(req, SkillRequest.class);
-				String skillResult = skills.get(skillRequest.getType()).execute(req);
-				LOGGER.debug("Get actual skill result: " + skillResult);
-				skillResults.put(req, skillResult);				
-			}
-			catch(Exception e) {
-				sendGenericRetryRequest = true;
-			}
-		}
-
-		if(sendGenericRetryRequest) {
-
-			// Another version that might work:
-			// Please resend and only print the 3 lines specified: a. What I need to do: {STEP}, b. How to approach: {WHICH 
-			// SKILL TO USE AND WHY}, c. Interim step: {JSON to use a skill}
-			//
-			String errMsg = """
-				I was unable to process your response because you did not follow the format 
-				specified in the instructions.  Please limit your response to exactly 3 lines
-				and follow the format:
-				
-				a. What I need to do: {STEP}
-				b. How to approach: {WHICH SKILL TO USE AND WHY}
-				c. Interim step: {JSON to use a skill}
-					""";
-			conversation.getMessages().add(new ChatMessage(ChatMessageRole.USER.value(), errMsg));
-			return true;
-		}
-
-		if(skillRequests.size() == 0) {
-			return false;
-		}
-
-		StringBuilder skillResponseSB = new StringBuilder();
-		skillResponseSB.append("You requested to use " + skillRequests.size() + " skills.  Here are the results:");
-		skillResponseSB.append("\n\n");
-		for(String req : skillRequests) {
-			skillResponseSB.append("The request " + req + " resulted in " + skillResults.get(req));
-			skillResponseSB.append("\n");
-		}
-		conversation.getMessages().add(new ChatMessage(ChatMessageRole.USER.value(), skillResponseSB.toString()));
-
-		return true;
 	}
     
 }

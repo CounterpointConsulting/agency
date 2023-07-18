@@ -40,26 +40,6 @@ public class TextFileLoader implements Loader {
         StringBuilder outputBuilder = new StringBuilder();
         String[] splitText = d.getOriginalText().split("\\n");
         List<String> chunks = chunkText(outputBuilder, splitText, agencyConfiguration.getTextLoaderChunkSize());
-        
-        // for(int i = 0; i < splitText.length; i++) {
-        //     if(splitText[i].length() > agencyConfiguration.getChunkSize()) {
-        //         // needs to be further split
-        //         StringBuilder innerOutputBuilder = new StringBuilder();
-        //         String[] innerSplitText = splitText[i].split(".");
-        //         for(int j = 0; j < innerSplitText.length; j++) {
-        //             innerOutputBuilder.append(innerSplitText[j]);
-
-        //         }
-        //     }
-        //     else if((outputBuilder.length() + splitText[i].length()) < agencyConfiguration.getChunkSize()) {
-        //         outputBuilder.append(splitText[i]);
-        //     }
-        //     else {
-        //         chunks.add(outputBuilder.toString());
-        //         outputBuilder = new StringBuilder(splitText[i]);
-        //     }
-        //     chunks.add(splitText[i]);
-        // }
         d.setChunks(chunks);
         
         return d;
