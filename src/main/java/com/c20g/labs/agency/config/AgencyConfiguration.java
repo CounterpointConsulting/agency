@@ -3,6 +3,11 @@ package com.c20g.labs.agency.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 @Configuration
 public class AgencyConfiguration {
 
@@ -15,25 +20,7 @@ public class AgencyConfiguration {
     @Value("${agency.chat_req_max_tokens}")
     private Integer chatRequestMaxTokens;
 
-    public String getChatLogDirectory() {
-        return chatLogDirectory;
-    }    
-    public void setChatLogDirectory(String chatLogDirectory) {
-        this.chatLogDirectory = chatLogDirectory;
-    }
-
-    public Integer getTextLoaderChunkSize() {
-        return textLoaderChunkSize;
-    }
-    public void setTextLoaderChunkSize(Integer chunkSize) {
-        this.textLoaderChunkSize = chunkSize;
-    }
-
-    public Integer getChatRequestMaxTokens() {
-        return chatRequestMaxTokens;
-    }
-    public void setChatRequestMaxTokens(Integer chatRequestMaxTokens) {
-        this.chatRequestMaxTokens = chatRequestMaxTokens;
-    }
+    @Value("${agency.chat_summary_retained_messages_count}")
+    private Integer chatSummaryRetainedMessageCount;
 
 }

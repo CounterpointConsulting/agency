@@ -53,10 +53,10 @@ public class PythonSkill implements Skill {
                     Write the Python code to perform the calculation.  You should
                     return only executable Python code, with no explanation.
                     
-                    Begin your output with #!/usr/bin/python3
+                    Begin your output with '#!/usr/bin/python3'
 
                     Your code to solve the problem should be in a function called
-                    execute, and the program should call 'execute' as its final line.
+                    'execute', and the program should call 'execute' as its final line.
                     The execute function should not return any value, and it
                     should only print one line with the final result to answer
                     the request.
@@ -64,47 +64,28 @@ public class PythonSkill implements Skill {
 
                 ConversationHistory conversation = new ConversationHistory();
 
-                Map<String, String> exprInputMap = new HashMap<>();
-                exprInputMap.put("description", q.getDescription());
+                Map<String, String> inputMap = new HashMap<>();
+                inputMap.put("description", q.getDescription());
 
-                ChatMessage systemMessage = new ChatMessage(ChatMessageRole.SYSTEM.value(), "You are a helpful AI agent that solves problems by writing Python code for the user to execute.");
-                conversation.getMessages().add(systemMessage);
+                ChatMessage systemMessage = new ChatMessage(ChatMessageRole.SYSTEM.value(), """
+                    You are a helpful AI agent that solves problems by writing Python
+                    code for the user to execute.
+                        """);
+
+                conversation.addMessage(systemMessage);
 
                 PromptGenerator p = new NoShotPrompt(reqTemplate);
-                ChatMessage userPrompt = new ChatMessage(ChatMessageRole.USER.value(), p.generate(exprInputMap));
-                conversation.getMessages().add(userPrompt);
+                ChatMessage userPrompt = new ChatMessage(ChatMessageRole.USER.value(), p.generate(inputMap));
+                conversation.addMessage(userPrompt);
 
                 ChatMessage aiResponseMsg = chatUtils.getNextChatResponse(conversation);
                 System.out.println("\n" + aiResponseMsg.getContent() + "\n");
-                conversation.getMessages().add(aiResponseMsg);
+                conversation.addMessage(aiResponseMsg);
 
-                File tmpPython = File.createTempFile(agencyConfiguration.getChatLogDirectory(), ".agency.python.py");
-                LOGGER.debug("Writing python code to " + tmpPython.getAbsolutePath());
-                PrintWriter writer = new PrintWriter(tmpPython);
-                writer.println(q.getDescription());
-                writer.close();
-                tmpPython.delete();
-
-                LOGGER.debug("Executing python...");
-                Process proc = new ProcessBuilder("python3", tmpPython.getAbsolutePath()).start();
-                InputStream is = proc.getInputStream();
-                InputStreamReader isr = new InputStreamReader(is);
-                BufferedReader br = new BufferedReader(isr);
-                StringBuilder responseBuilder = new StringBuilder();
-                String line;
-                while((line = br.readLine()) != null) {
-                    responseBuilder.append(line);
-                }
-                br.close();
-                isr.close();
-                is.close();
-                String response = responseBuilder.toString();
-                LOGGER.debug("Got output from python: " + response);
-
-                return response;
+                return aiResponseMsg.getContent();
             }
             catch(Exception e) {
-                LOGGER.error("Error getting and executing python code for description: " + q.getDescription(), e);
+                LOGGER.error("Error getting python code for description: " + q.getDescription(), e);
                 throw e;
             }
         }

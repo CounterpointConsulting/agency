@@ -9,9 +9,10 @@ import com.c20g.labs.agency.chat.ConversationHistory;
 public class PythonAgent implements Agent {
 
     @Override
-    public String run(String input, ConversationHistory parentConversation) throws Exception {
+    public ConversationHistory run(String input, ConversationHistory parentConversation) throws Exception {
+        ConversationHistory conversation = new ConversationHistory();
         
-        return null;
+        return conversation;
     }
     
 }

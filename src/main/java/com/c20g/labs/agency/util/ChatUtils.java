@@ -2,11 +2,13 @@ package com.c20g.labs.agency.util;
 
 import java.util.Scanner;
 
+import org.json.simple.JSONValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.c20g.labs.agency.agent.summarizer.SummarizerAgent;
 import com.c20g.labs.agency.chat.ConversationHistory;
 import com.c20g.labs.agency.config.AgencyConfiguration;
 import com.c20g.labs.agency.config.OpenAiConfiguration;
@@ -38,6 +40,9 @@ public class ChatUtils {
     @Autowired
 	private ChatCompletionRequestBuilder requestBuilder;
 
+    @Autowired
+    private SummarizerAgent summarizerAgent;
+
     public String getNextLine(Scanner stringScanner) {
 		System.out.print("> ");
 		String input = stringScanner.nextLine();
@@ -59,7 +64,7 @@ public class ChatUtils {
         LOGGER.debug("JTokkit counted " + tokenCount + " tokens in the request");
 
         ChatCompletionRequest chatCompletionRequest = requestBuilder
-                    .messages(conversation.getMessages())
+                    .messages(conversation.getAllMessages())
                     .maxTokens(agencyConfiguration.getChatRequestMaxTokens())
                     .build();
         ChatCompletionResult chatCompletion = openAiService.createChatCompletion(chatCompletionRequest);
@@ -83,7 +88,7 @@ public class ChatUtils {
             throw new IllegalArgumentException("Unsupported model: " + model);
         }
         int sum = 0;
-        for (final var message : conversation.getMessages()) {
+        for (final var message : conversation.getAllMessages()) {
             sum += tokensPerMessage;
             sum += encoding.countTokens(message.getContent());
             sum += encoding.countTokens(message.getRole());
@@ -92,5 +97,66 @@ public class ChatUtils {
         sum += 3; // every reply is primed with <|start|>assistant<|message|>
 
         return sum;
+    }
+
+
+    public static String getLongInput(Scanner stringScanner) {
+        System.out.println("Enter text to summarize.  To process, enter \\z on the final line.");
+        StringBuilder sb = new StringBuilder();
+        while(true) {
+            String nextLine = stringScanner.nextLine();
+
+            if("\\z".equals(nextLine)) {
+                return sb.toString();
+            }
+            else {
+                sb.append(JSONValue.escape(nextLine));
+            }
+        }
+    }
+
+
+    public ConversationHistory summarizeConversation(ConversationHistory conversation) throws Exception {
+        ConversationHistory historyAgentConversation = 
+            summarizerAgent.run(conversation.formattedFullHistory(), null);
+
+        ConversationHistory summarized = new ConversationHistory();
+
+        // copy the system message if there is one
+        if(conversation.getAllMessages().get(0).getRole().equals(ChatMessageRole.SYSTEM.value())) {
+            summarized.addMessage(
+                new ChatMessage(ChatMessageRole.SYSTEM.value(), 
+                                conversation.getAllMessages().get(0).getContent()));
+        }
+        
+        summarized.addMessage(
+            new ChatMessage(ChatMessageRole.USER.value(), 
+                "Here is a summary of our conversation so far:\n\n" + 
+                    historyAgentConversation.getAllMessages().get(
+                        historyAgentConversation.getAllMessages().size()-1)));
+        
+        StringBuilder recentMessagesSB = new StringBuilder("Here are our most recent messages: \n\n");
+        
+        if(conversation.getAllMessages().size() > agencyConfiguration.getChatSummaryRetainedMessageCount()) {
+            for(ChatMessage m : getLastMessages(conversation, agencyConfiguration.getChatSummaryRetainedMessageCount())) {
+                recentMessagesSB.append(m.getRole()).append(" > " + m.getContent()).append("\n");
+            }
+
+            summarized.addMessage(
+                new ChatMessage(ChatMessageRole.USER.value(), 
+                    recentMessagesSB.toString()));
+        }
+
+        return summarized;
+    }
+
+    public ChatMessage getLastChatMessage(ConversationHistory conversation) {
+        return getLastMessages(conversation, 1)[0];
+    }
+
+    public ChatMessage[] getLastMessages(ConversationHistory conversation, int count) {
+        return conversation.getAllMessages()
+                    .subList(Math.max(conversation.getAllMessages().size() - count, 0), 
+                conversation.getAllMessages().size()).toArray(new ChatMessage[0]);
     }
 }
