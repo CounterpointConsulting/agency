@@ -29,7 +29,7 @@ over the years.
 
 
 # Updates
-2023-07-17: Agency development is shifting gears after some reflection, moving towards a focus on giving LLMs the ability to create dynamic agents.  That is, instead of providing the model with a set of agents that it can use to solve problems, leverage the ability of the LLM to both generate plans and write code to give it the ability to write new agents on the fly.  It will be an application you can run instead of a framework (of course you could treat it as a framework and code up your own agents) and watch it grow!
+2023-07-17: Agency development is shifting gears after some reflection, moving towards a focus on giving LLMs the ability to create dynamic agents.  That is, instead of providing the model with a set of agents that it can use to solve problems, leverage the ability of the LLM to both generate plans and write code to give it the ability to write new agents on the fly.  It will be an application you can run instead of a framework (of course you could treat it as a framework and code up your own agents to augment the core ones) and watch it grow!
 
 2023-06-28: I've been reorganizing the conceptual layers and formalizing some of the interfaces.  The biggest change is inserting a proxy/planner layer that selects and coordinates the agents.  The basic flow looks something like:
 
@@ -38,7 +38,7 @@ over the years.
 3. Planner attempts to complete each step in the plan by sending the designated Agent a message describing the action(s) that need to be taken.
 4. Once the last step is completed, the Planner gives the final response to the user.
 
-This approach (as described above it's 4 steps, in reality it's 9) removes manual chaining from the responsibility of the coder, since assuming the instructions are clear and your agents have the requisite skills, the Planner should be able to figure out the chaining on its own.  This is a working theory, we'll see.
+This approach (as described above it's 4 steps, in reality it's more like 9) removes manual chaining from the responsibility of the coder, since assuming the instructions are clear and your agents have the requisite skills, the Planner should be able to figure out the chaining on its own.  This is a working theory, we'll see.
 
 There are cases where I could see manually wanting to define the steps yourself (you being the coder) for cases like having a model generate multiple ideas to work with, or having multiple Agents vote on some question.  As I was thinking about it, though, there's no reason the Planner couldn't coordinate that also.
 
