@@ -12,7 +12,6 @@ import com.c20g.labs.agency.agent.summarizer.SummarizerAgent;
 import com.c20g.labs.agency.chat.ConversationHistory;
 import com.c20g.labs.agency.config.AgencyConfiguration;
 import com.c20g.labs.agency.config.OpenAiConfiguration;
-import com.c20g.labs.agency.skill.SkillLocator;
 import com.knuddels.jtokkit.Encodings;
 import com.knuddels.jtokkit.api.Encoding;
 import com.knuddels.jtokkit.api.EncodingRegistry;
@@ -138,8 +137,8 @@ public class ChatUtils {
         
         StringBuilder recentMessagesSB = new StringBuilder("Here are our most recent messages: \n\n");
         
-        if(conversation.getAllMessages().size() > 10) {
-            for(ChatMessage m : conversation.getAllMessages().subList(Math.max(conversation.getAllMessages().size() - 3, 0), conversation.getAllMessages().size())) {
+        if(conversation.getAllMessages().size() > agencyConfiguration.getChatSummaryRetainedMessageCount()) {
+            for(ChatMessage m : getLastMessages(conversation, agencyConfiguration.getChatSummaryRetainedMessageCount())) {
                 recentMessagesSB.append(m.getRole()).append(" > " + m.getContent()).append("\n");
             }
 
@@ -149,5 +148,15 @@ public class ChatUtils {
         }
 
         return summarized;
+    }
+
+    public ChatMessage getLastChatMessage(ConversationHistory conversation) {
+        return getLastMessages(conversation, 1)[0];
+    }
+
+    public ChatMessage[] getLastMessages(ConversationHistory conversation, int count) {
+        return conversation.getAllMessages()
+                    .subList(Math.max(conversation.getAllMessages().size() - count, 0), 
+                conversation.getAllMessages().size()).toArray(new ChatMessage[0]);
     }
 }

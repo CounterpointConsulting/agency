@@ -23,7 +23,7 @@ public class SummarizerAgent implements Agent {
 
     @Override
     public ConversationHistory run(String input, ConversationHistory parentConversation) throws Exception {
-        // this gets returned, the "parentConversation" passed in is thrown away
+        // this gets returned, the "parentConversation" passed in is ignored
         ConversationHistory conversation = new ConversationHistory();
 
         // normally this would come from a json request, but this makes it callable programmatically
