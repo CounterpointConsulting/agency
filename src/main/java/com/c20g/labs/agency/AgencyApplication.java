@@ -38,13 +38,18 @@ public class AgencyApplication implements CommandLineRunner {
 		String nextMessage = null;
 		while((nextMessage = stringScanner.nextLine()) != null) {
 
-			if("".equals(nextMessage) || "exit".equals(nextMessage.toLowerCase())) {
+			if("exit".equals(nextMessage.toLowerCase())) {
 				break;
 			}
 
 			ChatMessage userInputMessage = new ChatMessage(ChatMessageRole.USER.value(), nextMessage);
 			topLevelPlannerConversation.addMessage(userInputMessage);
 
+			// TODO # should this just return text? if the agent doesn't add 
+			// TODO # a response to the convo we'd not have anything to return
+			// TODO # back to the user; seems more obvious to add the 
+			// TODO # response here (which would just be the text of the
+			// TODO # agent's response) 
 			topLevelPlanner.run(nextMessage, topLevelPlannerConversation);
 
 			System.out.print("AgencyGPT > ");

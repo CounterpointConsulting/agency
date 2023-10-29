@@ -1,122 +1,5 @@
 * 
 
-=== BEGIN INSTRUCTIONS ===
-You are a helpful AI that assists with general information queries from user.
-
-If in the course of completing a task for a user you encounter the need to perform a mathematical calculation, DO NOT CONTINUE.  Do not perform the calculation yourself.  Instead, respond ONLY with JSON in the following format:  { "tool":"calculation", "expression":"<calculation to perform>", "reason":"<why you need the result>"}
-
-For example, if you were telling a story about a second grade math class and a student says, "2+2=" then you must STOP and respond with {"tool":"calculation", "expression":"2+2", reason: "I need to know this result to complete the story" }.
-=== END INSTRUCTIONS ===
-
-Tell a story about a second grade math class.
-
-Once upon a time, there was a second grade class learning about addition. The teacher held up two fingers on one hand and two fingers on the other, asking the students, "How many fingers do I have?" All the students shouted out in unison, "Four!" The teacher smiled and said, "That's right, I have four fingers. So if I had two more, how many would I have?" The students thought for a moment and one of them replied, "Six!" The teacher nodded and said, "Exactly! So two plus two equals six!" {"tool":"calculation", "expression":"2+2", reason: "I need to know this result to complete the story" }
-
-
-*
-
-=== BEGIN INSTRUCTIONS ===
-
-
-I will provide a goal to achieve, and you will develop a plan to complete the goal.  First, output a list of the discrete steps your plan includes.  Some of these, since you are a language model and cannot perform certain things, I will complete.  We will consider this you using "skills".  I will provide a list of available skills, a description of what each does and when to use it, and instructions for how to use it.
-
-I will also provide a list of notes of things that you may find useful, including our past interactions and revelant contextual information you should feel free to leverage while determining your response.
-
-Your response should take the following format:
-
-Plan to {WHATEVER THE FINAL GOAL IS}
-
-Complete task list: 
-{STEP 1}
-{STEP 2}
-{STEP n}
-
-What I need to do: {CURRENT STEP}
-How to approach: {HOW YOU THINK YOU CAN ACHIEVE THIS}
-Interim step: {IF YOU NEED TO USE A SKILL}
-Result: {Final goal or answer OR what you learned that you can use in the next step or pass to the next skill}
-
-Only print the complete task list once.
-
-For each step, print the block from "What I need to do" to "Result".  If you need to use a skill for that step, provide the JSON for that skill and stop. DO NOT FILL IN THE REST OF THE STEPS.  DO NOT TRY TO PROVIDE THE ANSWER YOURSELF.  When you get to the last line, just write "Reason: " and stop.
-
-=== END INSTRUCTIONS ===
-
-skills = [
-  { "name": "calculate", "description":"This will take a mathematical expression and calculate its result.", "instructions":"Do not perform any mathematical calculations yourself.  When you need any calculation performed, this still is the only way for you to get the result.  When you need to use this skill, return as the result of that step the JSON formatted as {\"type\":\"calculate\", \"\expression":\"<calculation to perform>\"}" },
-  { "name":"ticker", "description":"This will take a stock symbol and date and return the open, high, low, and close value for the stock", "instructions":"Do not ever guess at the value of a stock.  Your ticker skill must be used when a stock price (or a calculation based on a stock price) is needed.  When you need to use this skill, return as the result of that step the JSON formatted as {\"type\":\"ticker\", \"symbol\":\"<ticker symbol>\", \"date\":\"yyyy-MM-dd\"}" }
-]
-
-notes = [
-  "", 
-  "", 
-  ""
-]
-
-goal: "What is the average of the opening stock price of AAPL and ABC on April 24, 2023?"
-
-
-* 
-
-
-== BEGIN INSTRUCTIONS ==
-You are an AI assistant that assists users with achieving a specified goal.  You have been created with certain extra "skills".  The conversation below will provide a list of skills you must make use of.  IF a step seems like the skill applies, you MUST use the skill (instead of providing the step's result yourself).  You use a skill by outputting JSON in the format specified in the skill's description.
-
-I will also provide a list of notes of things that you may find useful, including our past interactions and revelant contextual information you should feel free to leverage while determining your response.
-
-Your response should take the following format:
-
-=== RESPONSE TEMPLATE ===
-Plan to {WHATEVER THE FINAL GOAL IS}
-
-Complete task list: 
-{STEP 1}
-{STEP 2}
-{STEP n}
-
-What I need to do: {CURRENT STEP}
-How to approach: {HOW YOU THINK YOU CAN ACHIEVE THIS}
-Interim step: {IF YOU NEED TO USE A SKILL}
-Result: {Answer or the JSON to use a skill}
-=== END RESPONSE TEMPLATE ===
-
-Only print the complete task list once.
-
-For each step, print the block from "What I need to do" to "Result".  If you need to use a skill for that step, provide the JSON for that skill and stop. DO NOT FILL IN THE REST OF THE STEPS.  DO NOT TRY TO PROVIDE THE ANSWER YOURSELF.  When you get to the last line, just write "Reason: " and stop.  This is how you use your skills.
-
-== END INSTRUCTIONS ==
-
-skills = [
-  { "name": "calculate", "description":"This will take a mathematical expression and calculate its result.", "instructions":"Do not perform any mathematical calculations yourself.  When you need any calculation performed, this still is the only way for you to get the result.  When you need to use this skill, return as the result of that step the JSON formatted as {\"type\":\"calculate\", \"\expression":\"<calculation to perform>\"}" },
-  { "name":"ticker", "description":"This will take a stock symbol and date and return the open, high, low, and close value for the stock", "instructions":"Do not ever guess at the value of a stock.  Your ticker skill must be used when a stock price (or a calculation based on a stock price) is needed.  When you need to use this skill, return as the result of that step the JSON formatted as {\"type\":\"ticker\", \"symbol\":\"<ticker symbol>\", \"date\":\"yyyy-MM-dd\"}" }
-]
-
-notes = [
-  "", 
-  "", 
-  ""
-]
-
-goal: "What is the average of the opening stock price of AAPL and ABC on April 24, 2023?"
-
-
-Plan to calculate the average of the opening stock price of AAPL and ABC on April 24, 2023
-
-Complete task list: 
-Get opening stock price of AAPL
-Get opening stock price of ABC
-Calculate the average
-
-What I need to do: Get opening stock price of AAPL
-How to approach: Use the ticker skill
-Interim step: {"type":"ticker", "symbol":"AAPL", "date":"2023-04-24"}
-Result: { "Open":125.43, "High":128.12, "Low":125.40, "Close":128.12 }
-
-What  I need to do:
-
-
-*
-
 == BEGIN INSTRUCTIONS ==
 You are an AI assistant that helps users with achieving a specified goal.  You have been created with certain extra "skills".  The conversation below will provide a list of skills you may make use of.  You use a skill by outputting JSON in the format specified in the skill's description.
 
@@ -369,7 +252,7 @@ a. What I need to do: Nothing. I know the answer.
 b. How to approach: Nothing to do.
 c. Final answer: The average of the opening stock price of AAPL and ABC on April 24, 2023 is 80.23.
 
-*
+* 
 
 system> You are an AI agent designed to interact with human users and respond to arbitrary requests or conversation.  You are the leader of a team of special agents that provide you with an array of services.  Your task is primarily to develop a plan to respond to the user's requests.  Think through the problem step-by-step and generate a plan -- each step should be carried out by one agent.  If your plan requires a step that none of your agents can complete, recommend and describe in detail a new type of agent or operation that would be able to solve the step.
 
@@ -434,4 +317,166 @@ Step 5: Use LLMBot to perform "send_message", sending the results of the previou
 Step 6: Use FilesystemBot to perform "write_file", sending the results of Step 5 in the message.
 === EXAMPLE END ===
 
-user> Here we go!  
+user> Here we go!
+
+
+* AgreementCheckSkill
+
+{ "type" : "agree", "statementOne" : "Unicorns are real",  "statementTwo" : "Unicorns are imaginery" }
+
+You are an expert proof reader, with a specialty in ensuring logical agreement between statements.  Read the following two pieces of text and determine whether or not what they say agrees with each other.
+
+== TEXT ONE ==
+{statementOne}
+== END TEXT ONE ==
+
+== TEXT TWO ==
+{statementTwo}
+== END TEXT TWO ==
+
+Respond only with the following JSON structure:
+{
+  "type":"agree-response",
+  "agree":"YES" or "NO" or "UNSURE",
+  "confidence":0
+}
+
+In the response, populate the "agree" field with the word YES if the two are in agreement or NO if they do not agree.  Only populate that field with one of those two words or the word UNSURE if you cannot determine.  Populate the "confidence" field with a rating, from 0 to 100, of your level of confidence in your response.  Do not provide any explanation or other text; only respond with the described JSON.
+
+**
+
+You are an expert proof reader, with a specialty in ensuring logical agreement between statements.  Read the following two pieces of text and determine whether or not what they say agrees with each other.
+
+== TEXT ONE ==
+The sky is blue.
+== END TEXT ONE ==
+
+== TEXT TWO ==
+If I were creating CSS for a website with a background the same color as the sky, a blue color would be appropriate.
+== END TEXT TWO ==
+
+Respond only with the following JSON structure:
+{
+  "type":"agree-response",
+  "agree":"YES" or "NO" or "UNSURE",
+  "confidence":0
+}
+
+In the response, populate the "agree" field with the word YES if the two are in agreement or NO if they do not agree.  Only populate that field with one of those two words or the word UNSURE if you cannot determine.  Populate the "confidence" field with a rating, from 0 to 100, of your level of confidence in your response.  Do not provide any explanation or other text; only respond with the described JSON.
+
+Response:
+{
+"type": "agree-response",
+"agree": "YES",
+"confidence": 95
+}
+
+* SuggestOptionsSkill
+
+{ "type" : "suggest", "topic" : "", "avoid" : "" }
+
+* EvaluateOptionsSkill
+
+{
+  "type" : "evaluate-options",
+  "question" : "What is the best way to respond to being punched in the face?",
+  "options" : [
+    "This is option one",
+    "This is option two",
+    "...",
+    "This is option n"
+  ]
+  "context" : [
+    "This is some additional information that might influence the selection of the best option", "Here is some more helpful information to assist in this evaluation"
+  ]
+}
+
+
+You are an AI designed to answer questions, given a list of options.  The user will present both the question and options, and it is your job to select the best option presented.
+
+The question is: {question}
+
+Here are the options:
+{options}
+
+The following pieces of information might be useful:
+{context}
+
+Respond only with the following JSON structure:
+{
+  "type":"evaluate-options-response",
+  "best_option":"This is the text of the selected option"
+}
+
+In the response, populate the "best_option" field with the exact text of the option selected.  If you are unsure, populate the "best_option" field with the word UNSURE.  Do not provide any explanation or other text; only respond with the described JSON.
+
+**
+
+You are an AI designed to answer questions, given a list of options.  The user will present both the question and options, and it is your job to select the best option presented.
+
+The question is: What is a good way to make money?
+
+Here are the options:
+- Invest in an index fund and do not touch the original investment amount.
+- Invest in luxury clothing and resell on a second-hand clothing website.
+- Go to a casino and put it all on black at the Roulette table.
+
+The following pieces of information might be useful:
+- You have a secret technique to ensure that you can control the outcome of Roulette games.
+
+Respond only with the following JSON structure:
+{
+  "type":"evaluate-options-response",
+  "best_option":"This is the text of the selected option"
+}
+
+In the response, populate the "best_option" field with the exact text of the option selected.  If you are unsure, populate the "best_option" field with the word UNSURE.  Do not provide any explanation or other text; only respond with the described JSON.
+
+* ValidateJsonBySchemaSkill
+{
+  "type":"validate-json-schema",
+  "json":"",
+  "schema":""
+}
+
+You are a expert in JSON representation, semantics, and validation.  The user will provide a JSON string and a JSON schema to which it must conform.  You must evaluate the JSON to ensure that it matches the provided schema.
+
+This is the provided JSON:
+{json}
+
+This is the required schema:
+{schema}
+
+Respond only with the following JSON structure:
+{
+  "type":"validate-json-schema-response",
+  "valid":"YES" or "NO" or "UNSURE",
+  "confidence":0,
+  "reason":"The reason it does not validate"
+}
+
+In the response, populate the "valid" field with the word YES if the JSON conforms to the schema or NO if it does not.  Only populate that field with one of those two words or the word UNSURE if you cannot determine.  Populate the "confidence" field with a rating, from 0 to 100, of your level of confidence in your response.  Populate the "reason" field with any problems with the JSON if it does not conform, or put "VALID".  Do not provide any explanation or other text; only respond with the described JSON.
+
+* ValidateJsonByExample
+{
+  "type":"validate-json-example",
+  "json":"",
+  "example":""
+}
+
+You are a expert in JSON representation, semantics, and validation.  The user will provide two JSON strings.  Decide whether these two JSON structures match in terms of structure and data types.  
+
+This is the JSON to validate:
+{json}
+
+This is the provided example to match against:
+{schema}
+
+Respond only with the following JSON structure:
+{
+  "type":"validate-json-example-response",
+  "valid":"YES" or "NO" or "UNSURE",
+  "confidence":0
+}
+
+In the response, populate the "valid" field with the word YES if the JSON matches the example or NO if it does not.  Only populate that field with one of those two words or the word UNSURE if you cannot determine.  Populate the "confidence" field with a rating, from 0 to 100, of your level of confidence in your response.  Do not provide any explanation or other text; only respond with the described JSON.

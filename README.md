@@ -1,34 +1,39 @@
 # Agency
 
-It might be easier to explain what agency is NOT.  It was originally intended as a Java framework for building applications on top of LLMs (like gpt-3.5-turbo and gpt-4 from OpenAI or models from HuggingFace).  The feature list included:
+Agency is an application built on top of Large Language Models (LLMs) like gpt-4.  The basic idea is that agency provides a core set of agents and a way to coordinate those agents, and those agents are empowered to add new agents with new skills.
 
-- Tools to create robust prompts for the LLM interactions (with history, variable injection, and examples for multi-shot)
-- The ability to add "skills" to agents to enable local automated actions upon LLM response commands
-- Integration with OpenAI embeddings functionality to vectorize text by generating embeddings
-- Integration with Milvus vector DB to provide contextual / similarity searches
-- Loaders for different types of files / documents
+LLMs are able to develop a plan to answer a chat prompt or solve a step-by-step problem.  LLMs are able (to some degree of reliability) to identify when it is unable to carry out a step in a plan.  LLMs are able to reason about and write code.  Agency's function is to allow the LLM to write code to add new capabilities to itself.
 
-...and maybe some more.  It still *has* all those things, and in fact you could use it as a library *for* those things.  The focus has changed fairly radically, however.
+On the outside, agency is basically a REPL (read, evaluate, print, loop) that a user interacts with via the terminal (currently).
 
-The focus now is on building a small, focused core of agents run by a "planner" to achieve tasks.  Ultimately, these agents and their "skills" will be fully hot-loadable and built dynamically by the agents themselves.  So, if while responding to a user's request, the Planner decides its current set of agents doesn't suffice to meet the current goal, it will create a new agent on the fly.  That the Planner can generate a set of steps to solve many problems is already established.  That the models can write functional Java and Python code is established.  There's no reason why it can't fill the gaps on the fly, assuming the correct level of detail can be provided.
+On the inside, agency consists of a few parts.  First, it maintains information about the "agents" available to it, and the "skills" those agents possess.  Second, it provides a core set of those agents and skills, known as the kernel.  These are the minimum set needed to build plans and create and deploy new agent types with new skills.
 
-NOTE: Agency is under active development:
+Each "skill" is an HTTP function that is called with the functionality provided in the kernel.  The agency kernel contains the functionality to clone an example function template, add custom logic, deploy the function to a serverless container, and call the function.
 
-1. None of the APIs are finalized.  Once the library starts to solidify and we understand the right levels of abstraction
-for generically interacting with LLMs, the services will be genericized as interfaces that can be implemented by different
-LLM APIs.  Same for vector stores, etc.  We will only support concrete implementations of the OpenAI API and the Milvus API
-at this point as we iterate on initial goals.
+Kernel Functionality
+---
+* clone a folder structure on the filesystem
+* read a file from the filesystem
+* write a file to the filesystem
+* write python code that implements a function
+* deploy function to OpenFaaS
+* read available agent descriptions
+* read available skills for an agent
+* call a skill via HTTP
 
-2. This was inspired by [langchain](https://python.langchain.com/en/latest/index.html), but is not a port or reimplementation. That
-said, I really like what they've done so far.  Unfortunately, I don't know Python and Java has gotten pretty nice
-over the years.
+*NOTE:* Agency is under active development:
+
+1. None of the APIs are finalized.
+
+2. This was inspired by [langchain](https://python.langchain.com/en/latest/index.html) and [auto-gpt](https://github.com/Significant-Gravitas/Auto-GPT), but is not a port or reimplementation. That said, I really like what they've done so far.  Unfortunately, I don't know Python and Java has gotten pretty nice over the years.
 
 3. I just found out [Semantic Kernel](https://learn.microsoft.com/en-us/semantic-kernel/overview/) uses some of the same terminology.  We have a greater global presence, however, so our users likely won't be confused.  I suspect the major search engines will give our usage preference.
 
-4. I've shifted focus away from trying to build a generic application framework, and instead focus on creating an agent system to augment LLMs, but let the LLM itself build the agents.  Sounds confusing, and it might be.    
-
+4. I've shifted focus away from trying to build a generic application framework, and instead focus on creating an application with an agent system to augment LLMs, but let the LLM itself build the agents.  Sounds confusing, and it might be.    
 
 # Updates
+2023-08-14: Gutting the original project structure, and keeping the bits that'll be useful.
+
 2023-07-17: Agency development is shifting gears after some reflection, moving towards a focus on giving LLMs the ability to create dynamic agents.  That is, instead of providing the model with a set of agents that it can use to solve problems, leverage the ability of the LLM to both generate plans and write code to give it the ability to write new agents on the fly.  It will be an application you can run instead of a framework (of course you could treat it as a framework and code up your own agents to augment the core ones) and watch it grow!
 
 2023-06-28: I've been reorganizing the conceptual layers and formalizing some of the interfaces.  The biggest change is inserting a proxy/planner layer that selects and coordinates the agents.  The basic flow looks something like:

@@ -40,8 +40,8 @@ public class ChatUtils {
     @Autowired
 	private ChatCompletionRequestBuilder requestBuilder;
 
-    @Autowired
-    private SummarizerAgent summarizerAgent;
+    // @Autowired
+    // private SummarizerAgent summarizerAgent;
 
     public String getNextLine(Scanner stringScanner) {
 		System.out.print("> ");
@@ -116,39 +116,39 @@ public class ChatUtils {
     }
 
 
-    public ConversationHistory summarizeConversation(ConversationHistory conversation) throws Exception {
-        ConversationHistory historyAgentConversation = 
-            summarizerAgent.run(conversation.formattedFullHistory(), null);
+    // public ConversationHistory summarizeConversation(ConversationHistory conversation) throws Exception {
+    //     ConversationHistory historyAgentConversation = 
+    //         summarizerAgent.run(conversation.formattedFullHistory(), null);
 
-        ConversationHistory summarized = new ConversationHistory();
+    //     ConversationHistory summarized = new ConversationHistory();
 
-        // copy the system message if there is one
-        if(conversation.getAllMessages().get(0).getRole().equals(ChatMessageRole.SYSTEM.value())) {
-            summarized.addMessage(
-                new ChatMessage(ChatMessageRole.SYSTEM.value(), 
-                                conversation.getAllMessages().get(0).getContent()));
-        }
+    //     // copy the system message if there is one
+    //     if(conversation.getAllMessages().get(0).getRole().equals(ChatMessageRole.SYSTEM.value())) {
+    //         summarized.addMessage(
+    //             new ChatMessage(ChatMessageRole.SYSTEM.value(), 
+    //                             conversation.getAllMessages().get(0).getContent()));
+    //     }
         
-        summarized.addMessage(
-            new ChatMessage(ChatMessageRole.USER.value(), 
-                "Here is a summary of our conversation so far:\n\n" + 
-                    historyAgentConversation.getAllMessages().get(
-                        historyAgentConversation.getAllMessages().size()-1)));
+    //     summarized.addMessage(
+    //         new ChatMessage(ChatMessageRole.USER.value(), 
+    //             "Here is a summary of our conversation so far:\n\n" + 
+    //                 historyAgentConversation.getAllMessages().get(
+    //                     historyAgentConversation.getAllMessages().size()-1)));
         
-        StringBuilder recentMessagesSB = new StringBuilder("Here are our most recent messages: \n\n");
+    //     StringBuilder recentMessagesSB = new StringBuilder("Here are our most recent messages: \n\n");
         
-        if(conversation.getAllMessages().size() > agencyConfiguration.getChatSummaryRetainedMessageCount()) {
-            for(ChatMessage m : getLastMessages(conversation, agencyConfiguration.getChatSummaryRetainedMessageCount())) {
-                recentMessagesSB.append(m.getRole()).append(" > " + m.getContent()).append("\n");
-            }
+    //     if(conversation.getAllMessages().size() > agencyConfiguration.getChatSummaryRetainedMessageCount()) {
+    //         for(ChatMessage m : getLastMessages(conversation, agencyConfiguration.getChatSummaryRetainedMessageCount())) {
+    //             recentMessagesSB.append(m.getRole()).append(" > " + m.getContent()).append("\n");
+    //         }
 
-            summarized.addMessage(
-                new ChatMessage(ChatMessageRole.USER.value(), 
-                    recentMessagesSB.toString()));
-        }
+    //         summarized.addMessage(
+    //             new ChatMessage(ChatMessageRole.USER.value(), 
+    //                 recentMessagesSB.toString()));
+    //     }
 
-        return summarized;
-    }
+    //     return summarized;
+    // }
 
     public ChatMessage getLastChatMessage(ConversationHistory conversation) {
         return getLastMessages(conversation, 1)[0];
