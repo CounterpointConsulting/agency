@@ -1,11 +1,5 @@
 package com.c20g.labs.agency.agent.planner;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +8,6 @@ import org.springframework.stereotype.Service;
 import com.c20g.labs.agency.agent.Agent;
 import com.c20g.labs.agency.chat.ConversationHistory;
 import com.c20g.labs.agency.config.AgencyConfiguration;
-import com.c20g.labs.agency.util.ChatUtils;
 import com.theokanning.openai.Usage;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatCompletionResult;
