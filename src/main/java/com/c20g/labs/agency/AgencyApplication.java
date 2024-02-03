@@ -38,13 +38,12 @@ public class AgencyApplication implements CommandLineRunner {
 		String nextMessage = null;
 		while((nextMessage = stringScanner.nextLine()) != null) {
 
-			if("".equals(nextMessage) || "exit".equals(nextMessage.toLowerCase())) {
+			if("exit".equals(nextMessage.toLowerCase())) {
 				break;
 			}
 
 			ChatMessage userInputMessage = new ChatMessage(ChatMessageRole.USER.value(), nextMessage);
 			topLevelPlannerConversation.addMessage(userInputMessage);
-
 			topLevelPlanner.run(nextMessage, topLevelPlannerConversation);
 
 			System.out.print("AgencyGPT > ");

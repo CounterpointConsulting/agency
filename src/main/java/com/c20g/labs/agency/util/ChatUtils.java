@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.c20g.labs.agency.agent.summarizer.SummarizerAgent;
 import com.c20g.labs.agency.chat.ConversationHistory;
 import com.c20g.labs.agency.config.AgencyConfiguration;
 import com.c20g.labs.agency.config.OpenAiConfiguration;
@@ -40,8 +39,8 @@ public class ChatUtils {
     @Autowired
 	private ChatCompletionRequestBuilder requestBuilder;
 
-    @Autowired
-    private SummarizerAgent summarizerAgent;
+    // @Autowired
+    // private SummarizerAgent summarizerAgent;
 
     public String getNextLine(Scanner stringScanner) {
 		System.out.print("> ");
@@ -113,41 +112,6 @@ public class ChatUtils {
                 sb.append(JSONValue.escape(nextLine));
             }
         }
-    }
-
-
-    public ConversationHistory summarizeConversation(ConversationHistory conversation) throws Exception {
-        ConversationHistory historyAgentConversation = 
-            summarizerAgent.run(conversation.formattedFullHistory(), null);
-
-        ConversationHistory summarized = new ConversationHistory();
-
-        // copy the system message if there is one
-        if(conversation.getAllMessages().get(0).getRole().equals(ChatMessageRole.SYSTEM.value())) {
-            summarized.addMessage(
-                new ChatMessage(ChatMessageRole.SYSTEM.value(), 
-                                conversation.getAllMessages().get(0).getContent()));
-        }
-        
-        summarized.addMessage(
-            new ChatMessage(ChatMessageRole.USER.value(), 
-                "Here is a summary of our conversation so far:\n\n" + 
-                    historyAgentConversation.getAllMessages().get(
-                        historyAgentConversation.getAllMessages().size()-1)));
-        
-        StringBuilder recentMessagesSB = new StringBuilder("Here are our most recent messages: \n\n");
-        
-        if(conversation.getAllMessages().size() > agencyConfiguration.getChatSummaryRetainedMessageCount()) {
-            for(ChatMessage m : getLastMessages(conversation, agencyConfiguration.getChatSummaryRetainedMessageCount())) {
-                recentMessagesSB.append(m.getRole()).append(" > " + m.getContent()).append("\n");
-            }
-
-            summarized.addMessage(
-                new ChatMessage(ChatMessageRole.USER.value(), 
-                    recentMessagesSB.toString()));
-        }
-
-        return summarized;
     }
 
     public ChatMessage getLastChatMessage(ConversationHistory conversation) {
