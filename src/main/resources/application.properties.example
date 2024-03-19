@@ -10,9 +10,9 @@ agency.chat_summary_retained_messages_count=10
 
 spring.jpa.hibernate.ddl-auto=create-drop
 
-spring.datasource.url=jdbc:postgresql://10.170.153.11:5433/agency
+spring.datasource.url=jdbc:postgresql://localhost:5432/agency
 spring.datasource.username=agency
-spring.datasource.password=agency
+spring.datasource.password=verycreativepassword
 
 spring.jpa.properties.hibernate.format_sql=false
 spring.jpa.properties.hibernate.show_sql=false
