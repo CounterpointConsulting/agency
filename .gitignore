@@ -34,3 +34,5 @@ build/
 
 
 etc/milvus/volumes
+src/main/resources/application.properties
+
