@@ -27,7 +27,7 @@ public class Plan {
     @Column(nullable=false)
     private int version;
 
-    @OneToMany
+    @OneToMany(mappedBy = "plan")
     private List<PlanStep> steps;
 
 }

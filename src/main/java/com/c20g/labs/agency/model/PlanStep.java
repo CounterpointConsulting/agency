@@ -27,6 +27,9 @@ public class PlanStep {
     @ManyToOne
     private Skill skill;
 
+    @ManyToOne
+    private Plan plan;
+
     @Lob
     private String explanation;
     
